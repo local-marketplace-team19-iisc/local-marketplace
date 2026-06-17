@@ -18,7 +18,7 @@ through a conversational agent.
 A conversational, deterministic marketplace agent. A customer asks (text now;
 voice->text later) for an item; the agent returns in-stock listings from nearby
 vendors (by default 5km and later configurable), cheapest-first; then distance if tie-breaker on the price; the customer carts across vendors and books; vendors manage inventory via a dashboard. The agent's intelligence is bounded - it
-semantically matches the query to catalog products, while pricing, ordering, and
+semantically matches the query to catalog products(with some defined threshold), while pricing, ordering, and
 inventory stay deterministic.
 
 ## 3. Primary user journeys (target)
@@ -80,10 +80,10 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 
 ## 6. Non-functional requirements
 
-- Privacy Compliance:  Customer geolocation is highly sensitive. Location data must be requested with explicit consent, processed strictly for proximity matching, and never persisted to the database.
-- Security Surface: Free-text natural language inputs represent a prompt-injection and abuse vector. All inputs must be rigorously sanitized and type-validated via Pydantic before reaching the embedding pipeline or database.
+- Privacy Compliance:  Customer geolocation is highly sensitive. Location data must be requested with explicit consent, processed strictly for proximity matching.
+- Security Surface: Free-text(with sanitization rules provided later) natural language inputs represent a prompt-injection and abuse vector. All inputs must be rigorously sanitized and type-validated via Pydantic before reaching the embedding pipeline or database.
 - Resilience (Liveness vs. Readiness): The `app scaffold` establishes a liveness probe (is the web server process running?). Future features must introduce a separate readiness probe (is the DB reachable, are extensions loaded?) to prevent false-green states under load.
-- Latency: Semantic retrieval and sorting must complete in ~ < 500ms (excluding network transit) to maintain conversational fluidity.
+- Latency: Semantic retrieval and sorting must have low latency (< 500ms) to maintain conversational fluidity.
 
 ## 7. Acceptance criteria
 
@@ -96,7 +96,7 @@ The app scaffold is the one-time starting point, not a feature. Its checks do no
 - `pytest` passes (`backend/tests/test_health.py`); `ruff check .` is clean.
 - (optional) `docker compose up` serves `/health` with `200`.
 
-## 9. Governance & Audit
+## 8. Governance & Audit
 
 Built feature-by-feature on top of the app scaffold.
 
