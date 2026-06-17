@@ -5,3 +5,16 @@
 copilotBytesTracker/
 
 CLAUDE.local.md
+
+# Secrets (Constitution P4) — .env.example is committed, .env is not
+.env
+.venv/
+
+.pytest_cache
+.ruff_cache
+
+__pycache__
+
+# Environments and Build Artifacts
+*.egg-info/
+.eggs/

@@ -13,7 +13,13 @@ Specs are precise, complete, unambiguous. Unknowns are [NEEDS CLARIFICATION], ne
 
 #Principle 3 - Audit trail
 
-Every feature directory must maintain `spec.md`, `prompts.md`, and `conversation-history.md` . Omission is a blocking defect. feature 000 is exempt from spec.md
+Every feature directory must maintain three artifacts, and all three MUST be committed to version control (Git) — never gitignored, never left as untracked or local-only scratch:
+
+- `spec.md` — the architectural contract. (Feature 000 is exempt: the master `SPEC.md` is its spec.)
+- `prompts.md` — a chronological log of the LLM prompts provided. It MUST also surface recurring interactions: in a "Recurring interactions" section, prompts that repeat (verbatim or by intent) are listed with an occurrence count and ranked by frequency (most frequent first). Any interaction recurring **3 or more times** (default threshold) is flagged `[SKILL CANDIDATE]` — a prime candidate to be promoted into a reusable skill. This keeps the log doubling as a ranked backlog of automation opportunities.
+- `conversation-history.md` — an append-only, cumulative log of every working session on the feature. Each session entry MUST capture: the session's context/goal, the decisions made and the reasoning behind them, edge cases and unknowns discovered, and any `[NEEDS CLARIFICATION]` raised or resolved. Earlier entries are never overwritten or truncated (consistent with Principle 6), so that when a new session begins, no context, reasoning, or edge-case discovery is ever lost.
+
+Omission of any artifact — or beginning implementation work in a session without first appending that session to `conversation-history.md` — is a blocking defect.
 
 #Principle 4 - No credentials in source.
 

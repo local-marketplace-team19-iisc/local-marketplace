@@ -96,9 +96,9 @@ Built feature-by-feature, starting from feature 000 (the app scaffold) and conti
 
 The Iron-Clad "Dry-Run" Rule: Before any implementation begins, the assigned engineer must produce a `plan.md` in the feature's directory. This plan acts as a "dry-run" summary that details exactly which files will be created, which existing files will be modified, and any architectural risks identified. Execution shall not commence until the `plan.md` is reviewed and approved by the user itself.
 
-Auditability & Versioning: Every team member must maintain a versioned history of their contributions. For each feature (`specs/NNN-slug/`), you must maintain:
+Auditability & Versioning: Every team member must maintain a versioned history of their contributions. For each feature (`specs/NNN-slug/`), you must maintain the following — all committed to version control (Git), never gitignored or local-only:
     - `spec.md`: The architectural contract. (Exception: feature 000 has none — this master SPEC.md is its spec.)
-    - `prompts.md`: A chronological log of the LLM prompts provided.
-    - `conversation-history.md`: The exported context of the interaction.
+    - `prompts.md`: A chronological log of the LLM prompts provided, plus a "Recurring interactions" section ranking repeated prompts by frequency and flagging any recurring ≥3 times as `[SKILL CANDIDATE]`. See constitution Principle 3.
+    - `conversation-history.md`: An append-only, cumulative log of every session — context/goal, decisions and their reasoning, edge cases and unknowns discovered, and `[NEEDS CLARIFICATION]` raised/resolved — so no context is lost across sessions. See constitution Principle 3.
 
 Authority: `docs/architecture.md` is the living decision log; updated by each feature, never pre-populated. `specs/constitution.md` outranks this document.
