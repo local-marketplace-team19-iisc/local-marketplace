@@ -40,7 +40,8 @@ inventory stay deterministic.
     │   └── api/openapi.json              # exported OpenAPI = the frontend backend contract (generated)
     ├── specs/
     │   ├── constitution.md               # Global governing rules
-    │   └── NNN-slug/                     # ONE FOLDER PER FEATURE (app scaffold is not a feature)
+    │   ├── 000-app-scaffold/             # feature 000: governed (full artifact set below) but NOT a product feature
+    │   └── NNN-slug/                     # ONE FOLDER PER FEATURE (product features start at 001)
     │       ├── spec.md                   # Current architectural contract for the feature
     │       ├── plan.md                   # REQUIRED: Pre-flight "Dry-Run" plan before execution
     │       ├── prompts.md                # Versioned log of LLM interactions & prompts
@@ -62,7 +63,7 @@ inventory stay deterministic.
 
 ## 5. Target stack & constraints
 
-The full stack the product is built toward. Rows marked `app scaffold` are the one-time runnable starting point and are not a tracked feature.
+The full stack the product is built toward. Rows marked `app scaffold` are the one-time runnable starting point delivered by feature 000 — governed like any feature, but not a product feature.
 
 | Area | Choice | Introduced by |
 | :-- | :-- | :-- |
@@ -87,7 +88,7 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 
 ## 7. Acceptance criteria
 
-The app scaffold is the one-time starting point, not a feature. Its checks do not require a `plan.md` or a `specs/` folder.
+The app scaffold is feature 000: governed like any feature (it gets `specs/000-app-scaffold/` with the full artifact set and follows the "Dry-Run" Rule), but it is not a product feature — it delivers the runnable starting point, not a customer or vendor journey. The criteria below are its success criteria.
 
 - App boots via the run command and serves on `localhost:$PORT`.
 - Liveness probe: `GET /health` -> `200` with `{"status":"OK"}`
@@ -98,7 +99,7 @@ The app scaffold is the one-time starting point, not a feature. Its checks do no
 
 ## 8. Governance & Audit
 
-Built feature-by-feature on top of the app scaffold.
+Built feature-by-feature, starting from feature 000 (the app scaffold) and continuing with product features 001+. Every feature — including 000 — is governed by the rules below.
 
 The Iron-Clad "Dry-Run" Rule: Before any implementation begins, the assigned engineer must produce a `plan.md` in the feature's directory. This plan acts as a "dry-run" summary that details exactly which files will be created, which existing files will be modified, and any architectural risks identified. Execution shall not commence until the `plan.md` is reviewed and approved by the user itself.
 
