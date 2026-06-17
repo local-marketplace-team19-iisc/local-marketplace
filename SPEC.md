@@ -35,6 +35,7 @@ stock stay deterministic.
 
     ./                                    # repo root = local-marketplace
     ├── README.md  .env.example  .gitignore  Dockerfile  docker-compose.yml  Makefile  pyproject.toml
+    ├── CLAUDE.md                         # AI context file; gitignored by default (commit for team sharing)
     ├── docs/
     │   ├── architecture.md               #created empty; filled incrementally as features add decisions
     │   └── api/openapi.json              # exported OpenAPI = the frontend backend contract (generated)
