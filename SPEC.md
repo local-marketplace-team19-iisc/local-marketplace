@@ -17,25 +17,24 @@ through a conversational agent.
 
 A conversational, deterministic marketplace agent. A customer asks (text now;
 voice->text later) for an item; the agent returns in-stock listings from nearby
-vendors, cheapest-first; the customer carts across vendors and books; vendors
-manage stock via a dashboard. The agent's intelligence is bounded - it
+vendors (by default 5km and later configurable), cheapest-first; then distance if tie-breaker on the price; the customer carts across vendors and books; vendors manage inventory via a dashboard. The agent's intelligence is bounded - it
 semantically matches the query to catalog products, while pricing, ordering, and
-stock stay deterministic.
+inventory stay deterministic.
 
 ## 3. Primary user journeys (target)
 
 1. Customer (chatbot screen): asks for a product -> sees in-stock, in-radius
    listings cheapest-first -> adds items from one or more vendors to a cart ->
-   confirms -> receives one order number (shared with each vendor for reference)
-   and "Order placed - the vendor will contact you / collect in store."
+   confirms -> receives one unique order number (which is further having one to many relationship like one order can have many vendors)
+   and "Order placed - with the order summary"
 2. Vendor (dashboard screen): registers with a shop location -> adds / updates /
-   deletes listings (catalog product + price + stock) -> views inventory and incoming orders.
+   deletes listings (catalog product (vendor define their own product details but must fit the pre-defined category) + price + stock) -> views inventory and incoming orders.
 
 ## 4. Project layout (target - each feature creates only its slice)
 
     ./                                    # repo root = local-marketplace
     ├── README.md  .env.example  .gitignore  Dockerfile  docker-compose.yml  Makefile  pyproject.toml
-    ├── CLAUDE.md                         # AI context file; gitignored by default (commit for team sharing)
+    ├── CLAUDE.md                         # AI context file; gitignored by default
     ├── docs/
     │   ├── architecture.md               #created empty; filled incrementally as features add decisions
     │   └── api/openapi.json              # exported OpenAPI = the frontend backend contract (generated)
@@ -91,7 +90,7 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 The app scaffold is the one-time starting point, not a feature. Its checks do not require a `plan.md` or a `specs/` folder.
 
 - App boots via the run command and serves on `localhost:$PORT`.
-- Liveness probe: `GET /health` -> `200` with `{"status":"ok"}` and a `version` string that dynamically matches the active `APP_VERSION` environment config.
+- Liveness probe: `GET /health` -> `200` with `{"status":"OK"}`
 - Setting `PORT=9001` rebinds the server to 9001.
 - No route other than `/health` exists.
 - `pytest` passes (`backend/tests/test_health.py`); `ruff check .` is clean.
@@ -101,7 +100,7 @@ The app scaffold is the one-time starting point, not a feature. Its checks do no
 
 Built feature-by-feature on top of the app scaffold.
 
-The Iron-Clad "Dry-Run" Rule: Before any implementation begins, the assigned engineer must produce a `plan.md` in the feature's directory. This plan acts as a "dry-run" summary that details exactly which files will be created, which existing files will be modified, and any architectural risks identified. Execution shall not commence until the `plan.md` is reviewed and approved.
+The Iron-Clad "Dry-Run" Rule: Before any implementation begins, the assigned engineer must produce a `plan.md` in the feature's directory. This plan acts as a "dry-run" summary that details exactly which files will be created, which existing files will be modified, and any architectural risks identified. Execution shall not commence until the `plan.md` is reviewed and approved by the user itself.
 
 Auditability & Versioning: Every team member must maintain a versioned history of their contributions. For each feature (`specs/NNN-slug/`), you must maintain:
     * `spec.md`: The architectural contract.
