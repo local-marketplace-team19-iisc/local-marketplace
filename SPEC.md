@@ -40,7 +40,7 @@ inventory stay deterministic.
     │   └── api/openapi.json              # exported OpenAPI = the frontend backend contract (generated)
     ├── specs/
     │   ├── constitution.md               # Global governing rules
-    │   ├── 000-app-scaffold/             # feature 000: governed (full artifact set below) but NOT a product feature
+    │   ├── 000-app-scaffold/             # feature 000: governed but NOT a product feature; NO own spec.md (this SPEC.md is its spec); has plan.md/prompts.md/conversation-history.md
     │   └── NNN-slug/                     # ONE FOLDER PER FEATURE (product features start at 001)
     │       ├── spec.md                   # Current architectural contract for the feature
     │       ├── plan.md                   # REQUIRED: Pre-flight "Dry-Run" plan before execution
@@ -88,7 +88,7 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 
 ## 7. Acceptance criteria
 
-The app scaffold is feature 000: governed like any feature (it gets `specs/000-app-scaffold/` with the full artifact set and follows the "Dry-Run" Rule), but it is not a product feature — it delivers the runnable starting point, not a customer or vendor journey. The criteria below are its success criteria.
+The app scaffold is feature 000: governed like any feature (it gets `specs/000-app-scaffold/` with `plan.md`, `prompts.md`, and `conversation-history.md`, and follows the "Dry-Run" Rule), but it is not a product feature — it delivers the runnable starting point, not a customer or vendor journey. Feature 000 has no own `spec.md`; this master SPEC.md is its spec, and the criteria below are its success criteria.
 
 - App boots via the run command and serves on `localhost:$PORT`.
 - Liveness probe: `GET /health` -> `200` with `{"status":"OK"}`
@@ -104,7 +104,7 @@ Built feature-by-feature, starting from feature 000 (the app scaffold) and conti
 The Iron-Clad "Dry-Run" Rule: Before any implementation begins, the assigned engineer must produce a `plan.md` in the feature's directory. This plan acts as a "dry-run" summary that details exactly which files will be created, which existing files will be modified, and any architectural risks identified. Execution shall not commence until the `plan.md` is reviewed and approved by the user itself.
 
 Auditability & Versioning: Every team member must maintain a versioned history of their contributions. For each feature (`specs/NNN-slug/`), you must maintain:
-    * `spec.md`: The architectural contract.
+    * `spec.md`: The architectural contract. (Exception: feature 000 has none — this master SPEC.md is its spec.)
     * `prompts.md`: A chronological log of the LLM prompts provided.
     * `conversation-history.md`: The exported context of the interaction.
 
