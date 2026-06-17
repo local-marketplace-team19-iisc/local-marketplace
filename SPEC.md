@@ -15,26 +15,20 @@ through a conversational agent.
 
 ## 2. MVP target - what we're building toward
 
-A conversational, deterministic marketplace agent. A customer asks (text now;
-voice->text later) for an item; the agent returns in-stock listings from nearby
-vendors (by default 5km and later configurable), cheapest-first; then distance if tie-breaker on the price; the customer carts across vendors and books; vendors manage inventory via a dashboard. The agent's intelligence is bounded - it
-semantically matches the query to catalog products(with some defined threshold), while pricing, ordering, and
-inventory stay deterministic.
+A conversational, deterministic marketplace agent. A customer (registered with app) asks (text now; voice->text later) for an item; the agent returns in-stock listings from nearby vendors which are already onboarded (by default 5km proximity and later configurable), ranks cheapest-first products(₹ currency defined with 2 decimal points precision); then distance if tie-breaker on the price; the customer adds to cart across different vendors and places order; vendors manage inventory via a dashboard. On successful placing order, the vendor's inventory is decremented. The agent's intelligence is bounded - it semantically matches the query to catalog products(with some defined threshold), while pricing, ordering, and inventory stay deterministic.
 
 ## 3. Primary user journeys (target)
 
-1. Customer (chatbot screen): asks for a product -> sees in-stock, in-radius
-   listings cheapest-first -> adds items from one or more vendors to a cart ->
-   confirms -> receives one unique order number (which is further having one to many relationship like one order can have many vendors)
-   and "Order placed - with the order summary"
-2. Vendor (dashboard screen): registers with a shop location -> adds / updates /
-   deletes listings (catalog product (vendor define their own product details but must fit the pre-defined category) + price + stock) -> views inventory and incoming orders.
+1. Customer (chatbot screen): asks for a product -> sees in-stock, in-radius listings cheapest-first -> adds items from one or more vendors to a cart ->
+   confirms -> receives one unique order number (which is further having one to many relationship like one order can have many vendors) and "Order placed - with the order summary"
+2. Vendor (dashboard screen): registers with a shop location -> adds / updates / deletes listings (catalog product (vendor define their own product details but   must fit the pre-defined enum category) + price + stock) -> views inventory and incoming orders.
 
 ## 4. Project layout (target - each feature creates only its slice)
 
     ./                                    # repo root = local-marketplace
     ├── README.md  .env.example  .gitignore  Dockerfile  docker-compose.yml  Makefile  pyproject.toml
-    ├── CLAUDE.md                         # AI context file; gitignored by default
+    ├── CLAUDE.md                         # AI context file; human-owned, committed, PR-only; AI forbidden to edit
+    ├── CLAUDE.local.md                   # gitignored, AI-writable
     ├── docs/
     │   ├── architecture.md               #created empty; filled incrementally as features add decisions
     │   └── api/openapi.json              # exported OpenAPI = the frontend backend contract (generated)
@@ -68,7 +62,7 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 | Area | Choice | Introduced by |
 | :-- | :-- | :-- |
 | Backend | Python 3.11 · FastAPI + uvicorn | app scaffold  |
-| Config | env `PORT` (default 8000) via `pydantic-settings` (`PORT`, `APP_VERSION`) | app scaffold  |
+| Config | env `PORT` (default 8000) via `pydantic-settings` (`PORT`) | app scaffold  |
 | Packaging | Docker (optional) | app scaffold  |
 | Secrets | `.env` (gitignored); `.env.example` committed | app scaffold  |
 | Quality | deps pinned (`pyproject.toml`); `ruff` lint; `pytest` + `httpx` | app scaffold  |
@@ -81,7 +75,6 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 
 ## 6. Non-functional requirements
 
-- Privacy Compliance:  Customer geolocation is highly sensitive. Location data must be requested with explicit consent, processed strictly for proximity matching.
 - Security Surface: Free-text(with sanitization rules provided later) natural language inputs represent a prompt-injection and abuse vector. All inputs must be rigorously sanitized and type-validated via Pydantic before reaching the embedding pipeline or database.
 - Resilience (Liveness vs. Readiness): The `app scaffold` establishes a liveness probe (is the web server process running?). Future features must introduce a separate readiness probe (is the DB reachable, are extensions loaded?) to prevent false-green states under load.
 - Latency: Semantic retrieval and sorting must have low latency (< 500ms) to maintain conversational fluidity.
@@ -104,8 +97,8 @@ Built feature-by-feature, starting from feature 000 (the app scaffold) and conti
 The Iron-Clad "Dry-Run" Rule: Before any implementation begins, the assigned engineer must produce a `plan.md` in the feature's directory. This plan acts as a "dry-run" summary that details exactly which files will be created, which existing files will be modified, and any architectural risks identified. Execution shall not commence until the `plan.md` is reviewed and approved by the user itself.
 
 Auditability & Versioning: Every team member must maintain a versioned history of their contributions. For each feature (`specs/NNN-slug/`), you must maintain:
-    * `spec.md`: The architectural contract. (Exception: feature 000 has none — this master SPEC.md is its spec.)
-    * `prompts.md`: A chronological log of the LLM prompts provided.
-    * `conversation-history.md`: The exported context of the interaction.
+    - `spec.md`: The architectural contract. (Exception: feature 000 has none — this master SPEC.md is its spec.)
+    - `prompts.md`: A chronological log of the LLM prompts provided.
+    - `conversation-history.md`: The exported context of the interaction.
 
 Authority: `docs/architecture.md` is the living decision log; updated by each feature, never pre-populated. `specs/constitution.md` outranks this document.

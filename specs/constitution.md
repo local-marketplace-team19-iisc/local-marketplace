@@ -13,7 +13,7 @@ Specs are precise, complete, unambiguous. Unknowns are [NEEDS CLARIFICATION], ne
 
 Principle 3 - Audit trail
 
-Every feature directory must maintain `spec.md`, `prompts.md`, and `conversation-history.md` . Omission is a blocking defect.
+Every feature directory must maintain `spec.md`, `prompts.md`, and `conversation-history.md` . Omission is a blocking defect. feature 000 is exempt from spec.md
 
 Principle 4 - No credentials in source.
 
