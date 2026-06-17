@@ -4,6 +4,7 @@ This constitution defines the non-negotiable governance principles for the Local
 
 
 Principle 1 - Dry-Run before execution
+
 Every feature must have a reviewed and approved `plan.md` in its spec directory before any implementation file is created or modified.
 
 Principle 2 — Executable, unambiguous specs
@@ -25,5 +26,5 @@ Principle 5 - AI assistant context
 Principle 6 - File idempotency
 
 When any spec or scaffold is executed, the agent must check for file existence before writing:
-- Governance config files (`constitution.md`, `.gitignore`, `pyproject.toml`, `CLAUDE.md`, etc.) — if the file exists, append or merge only missing sections. Never truncate or overwrite existing content.
+- Governance & config files (`constitution.md`, `.gitignore`, `pyproject.toml`, `CLAUDE.md`, etc.) — if the file exists, append or merge only missing sections. Never truncate or overwrite existing content.
 - Feature code files — only create or modify files scoped to the current feature. Files owned by another feature are off-limits.
