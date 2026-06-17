@@ -21,7 +21,7 @@ Secrets live in `.env` (gitignored). `.env.example` is committed with placeholde
 
 Principle 5 - AI assistant context
 
-`CLAUDE.md` (repo root) - This file provides guidance to Claude Code when working with code in this repository. Contains: stack, run/test/lint commands, how to handle errors, directory layout, git workflow. Gitignored by default so each developer keeps a local copy; commit it if the team wants shared AI context. Feature-specific context belongs in `specs/NNN-slug/spec.md`, not here.
+`CLAUDE.md` (repo root) - This file provides guidance to Claude Code when working with code in this repository. Contains: stack, run/test/lint commands, how to handle errors, directory layout, git workflow. The CLAUDE.md governs how everyone builds. It must be committed and reviewed. Feature-specific context belongs in `specs/NNN-slug/spec.md`, not here.
 
 Principle 6 - File idempotency
 
