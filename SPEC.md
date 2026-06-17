@@ -28,7 +28,7 @@ A conversational, deterministic marketplace agent. A customer (registered with a
     ./                                    # repo root = local-marketplace
     ├── README.md  .env.example  .gitignore  Dockerfile  docker-compose.yml  Makefile  pyproject.toml
     ├── CLAUDE.md                         # AI context file; human-owned, committed, PR-only; AI forbidden to edit
-    ├── CLAUDE.local.md                   # gitignored, AI-writable
+    ├── CLAUDE.local.md                   # gitignored, AI-writable; always created (not optional)
     ├── docs/
     │   ├── architecture.md               #created empty; filled incrementally as features add decisions
     │   └── api/openapi.json              # exported OpenAPI = the frontend backend contract (generated)
