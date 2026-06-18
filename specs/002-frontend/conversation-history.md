@@ -130,3 +130,39 @@ modified `src/App.jsx`. No other slice touched.
 
 **Approval state:** Phase 2 complete; awaiting acceptance to start Phase 3 (common
 components + routing: Button/Loader/Modal/Navbar, AppRoutes + ProtectedRoute).
+
+---
+
+## Session 1 — 2026-06-18 (Phase 3: Common components + routing)
+
+**Context / goal:** Shared UI primitives and the routing skeleton, including the auth
+guard (AC-08), so the app shell is navigable.
+
+**Work done (`frontend/src/`):**
+- `components/common/`: `Button.jsx`+css (variants/sizes/loading), `Loader.jsx`+css
+  (role=status, reduced-motion aware → AC-03/19), `Modal.jsx`+css (Escape + real
+  `<button>` backdrop for a11y-clean close), `Navbar.jsx`+css (role/auth-aware links,
+  cart badge, responsive toggle menu → AC-02/07).
+- `routes/`: `ProtectedRoute.jsx` (redirects unauthenticated → /login, supports
+  role-gating; preserves `from` location), `AppRoutes.jsx` (full route table per
+  `ROUTES`; pages render a temporary `Placeholder` until built in Phases 4–7; vendor
+  route is role-gated; `*` → home).
+- `App.jsx`: composed `AppProviders > BrowserRouter > Navbar + AppRoutes`.
+
+**Decisions / notes:**
+- **Routing-first skeleton:** `AppRoutes` uses an inline `Placeholder` for not-yet-built
+  pages so routing + the guard are verifiable now; each later phase swaps in the real
+  page (one import line per page).
+- **Modal close UX:** backdrop is a real `<button>` (keyboard-operable) instead of a
+  click-handled `<div>`, keeping jsx-a11y clean while preserving click-outside-to-close.
+
+**Verification (passed):** `npm run lint` clean; `npm run build` ok (62 modules, ~3s);
+`npm run preview` → HTTP 200, `#root` present.
+
+**Edge cases / unknowns:** none new. No `[NEEDS CLARIFICATION]` added.
+
+**Files altered:** new `src/components/common/*`, `src/routes/*`; modified `src/App.jsx`.
+No other slice touched.
+
+**Approval state:** Phase 3 complete; awaiting acceptance to start Phase 4 (Auth:
+Login/Register pages + useAuth wiring; AC-06/07/08).
