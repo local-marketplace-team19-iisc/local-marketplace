@@ -56,7 +56,10 @@ function Navbar() {
           )}
 
           {isAuthenticated && user?.role === ROLES.VENDOR && (
-            <NavLink to="/vendor" className={linkClass} onClick={close}>Vendor</NavLink>
+            <>
+              <NavLink to="/dashboard" className={linkClass} onClick={close}>Dashboard</NavLink>
+              <NavLink to="/vendor" className={linkClass} onClick={close}>Products</NavLink>
+            </>
           )}
 
           {isAuthenticated ? (

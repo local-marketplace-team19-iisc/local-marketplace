@@ -273,3 +273,39 @@ Remaining placeholders: only `/dashboard` and `/vendor` (Phase 7).
 
 **Approval state:** Phase 6 complete; awaiting acceptance to start Phase 7 (Vendor:
 Dashboard + VendorPage product CRUD; AC-13/14/15).
+
+---
+
+## Session 1 — 2026-06-18 (Phase 7: Vendor)
+
+**Context / goal:** Vendor surface — product CRUD and an inventory overview, both
+vendor-gated (AC-13/14/15).
+
+**Work done (`frontend/src/`):**
+- `pages/VendorPage.jsx`: lists the vendor's own products (filtered by `user.vendorId`);
+  add/edit via a Modal form (validated → AC-05), delete via a confirmation Modal
+  (AC-13/14/15). Responsive grid "table" that collapses to labelled cards on mobile.
+- `pages/Dashboard.jsx`: inventory stat cards (products, units, out-of-stock, inventory
+  value) + link to manage products.
+- `pages/vendor.css`: table/stat-card/responsive styles.
+- `routes/AppRoutes.jsx`: `/dashboard` and `/vendor` now role-gated (`ROLES.VENDOR`) to
+  the real pages; removed the now-unused `Placeholder` helper.
+- `components/common/Navbar.jsx`: vendors now see Dashboard + Products links.
+
+**Decisions / notes:**
+- Consistent with Phase 5, vendor pages fetch via `productService` directly (local state,
+  `useCallback` loaders) and mutate via the service, reloading after each change.
+- Two Modal usages exercised: the add/edit form and a delete confirmation (no native
+  `window.confirm`, keeping UX/a11y consistent).
+
+**Verification (passed):** `npm run lint` clean; `npm run build` ok (95 modules, ~2.8s);
+`npm run preview` → HTTP 200. **All routes now resolve to real pages** (no placeholders).
+
+**Edge cases / unknowns:** none new.
+
+**Files altered:** new `src/pages/{VendorPage,Dashboard}.jsx` + `vendor.css`; modified
+`src/routes/AppRoutes.jsx`, `src/components/common/Navbar.jsx`. No other slice touched.
+
+**Approval state:** Phase 7 complete; awaiting acceptance to start Phase 8 (Docs +
+finalize: README, UI_DESIGN, COMPONENT/ROUTING/API docs, TEST_CASES.md, SCREENSHOTS
+placeholder, Dockerfile; final build/lint + responsiveness review).

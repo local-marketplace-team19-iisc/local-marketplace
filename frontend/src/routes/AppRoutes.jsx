@@ -8,18 +8,11 @@ import ProductPage from '../pages/ProductPage'
 import FavoritesPage from '../pages/FavoritesPage'
 import OrdersPage from '../pages/OrdersPage'
 import ChatbotPage from '../pages/ChatbotPage'
+import Dashboard from '../pages/Dashboard'
+import VendorPage from '../pages/VendorPage'
 
-// Central route table. Pages are filled in across Phases 4–7; until a page exists it
-// renders this placeholder so routing + the ProtectedRoute guard (AC-08) are verifiable.
-function Placeholder({ title }) {
-  return (
-    <div className="container" style={{ padding: '32px 0' }}>
-      <h1>{title}</h1>
-      <p>This page is implemented in a later phase.</p>
-    </div>
-  )
-}
-
+// Central route table. Public, authenticated, and vendor-only routes; the auth guard
+// (AC-08) and role gate are applied via ProtectedRoute.
 function AppRoutes() {
   return (
     <Routes>
@@ -34,10 +27,10 @@ function AppRoutes() {
       {/* Authenticated */}
       <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
       <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Placeholder title="Dashboard" /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute role={ROLES.VENDOR}><Dashboard /></ProtectedRoute>} />
 
       {/* Vendor-only */}
-      <Route path="/vendor" element={<ProtectedRoute role={ROLES.VENDOR}><Placeholder title="Vendor" /></ProtectedRoute>} />
+      <Route path="/vendor" element={<ProtectedRoute role={ROLES.VENDOR}><VendorPage /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
