@@ -7,6 +7,7 @@ import SearchPage from '../pages/SearchPage'
 import ProductPage from '../pages/ProductPage'
 import FavoritesPage from '../pages/FavoritesPage'
 import OrdersPage from '../pages/OrdersPage'
+import ChatbotPage from '../pages/ChatbotPage'
 
 // Central route table. Pages are filled in across Phases 4–7; until a page exists it
 // renders this placeholder so routing + the ProtectedRoute guard (AC-08) are verifiable.
@@ -28,7 +29,7 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/product/:id" element={<ProductPage />} />
-      <Route path="/chat" element={<Placeholder title="Chatbot" />} />
+      <Route path="/chat" element={<ChatbotPage />} />
 
       {/* Authenticated */}
       <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />

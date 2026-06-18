@@ -243,3 +243,33 @@ FavoritesPage,OrdersPage}.jsx` + `search.css`/`orders.css`; modified `src/index.
 
 **Approval state:** Phase 5 complete; awaiting acceptance to start Phase 6 (Chatbot:
 ChatWindow/ChatInput/MessageBubble + useChat; AC-11/12).
+
+---
+
+## Session 1 — 2026-06-18 (Phase 6: Chatbot)
+
+**Context / goal:** Conversational search UI rendering API replies with session-
+persistent history (AC-11/12).
+
+**Work done (`frontend/src/`):**
+- `components/chatbot/`: `MessageBubble` (+css; user/bot/error styling, renders bot
+  product listings as links → AC-11), `ChatInput` (submit-on-Enter, clears on send),
+  `ChatWindow` (+css; renders history, typing Loader, auto-scrolls to latest).
+- `pages/ChatbotPage.jsx`: hosts ChatWindow.
+- `AppRoutes.jsx`: `/chat` → ChatbotPage (placeholder removed).
+
+**Decisions / notes:**
+- History persists for the session via the Chatbot context's in-memory `messages`
+  (AC-12); messages keyed by `uid`. `aria-live="polite"` on the message list for a11y.
+- Errors from the chat service are pushed as an error bubble (AC-04) — no console noise.
+
+**Verification (passed):** `npm run lint` clean; `npm run build` ok (90 modules, ~3.5s).
+Remaining placeholders: only `/dashboard` and `/vendor` (Phase 7).
+
+**Edge cases / unknowns:** none new.
+
+**Files altered:** new `src/components/chatbot/*`, `src/pages/ChatbotPage.jsx`; modified
+`src/routes/AppRoutes.jsx`. No other slice touched.
+
+**Approval state:** Phase 6 complete; awaiting acceptance to start Phase 7 (Vendor:
+Dashboard + VendorPage product CRUD; AC-13/14/15).
