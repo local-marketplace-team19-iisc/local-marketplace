@@ -23,6 +23,14 @@ Secrets are never recorded here (P4).
 5. **User:** "approve, start Phase 0".
 6. **Agent:** Phase 0 — created `spec.md`, `CLAUDE.md`, `prompts.md`,
    `conversation-history.md`; appended Feature-002 entry to `docs/architecture.md`.
+7. **User:** "proceed with Phase 1" → Agent: Vite/React 19 scaffold + verify.
+8. **User:** "proceed with Phase 2" → Agent: utils, services + mocks, contexts, hooks.
+9. **User:** "proceed with Phase 3" → Agent: common components + routing/guard.
+10. **User:** "proceed with Phase 4" → Agent: Login/Register pages.
+11. **User:** "proceed with Phase 5" → Agent: product components + customer pages.
+12. **User:** "proceed with Phase 6" → Agent: chatbot components + page.
+13. **User:** "proceed with Phase 7" → Agent: vendor Dashboard + product CRUD.
+14. **User:** "proceed with Phase 8" → Agent: docs, Dockerfile, final build/lint.
 
 ## Recurring interactions
 
@@ -30,8 +38,11 @@ _(Tracked by intent; flagged `[SKILL CANDIDATE]` at ≥3 occurrences — default
 
 | Intent | Count | Flag |
 | :-- | :-: | :-- |
+| "proceed with Phase N" → execute phase, run lint+build, log history, stop for acceptance | 8 | **[SKILL CANDIDATE]** |
+| Per-phase verification loop (`npm run lint` + `npm run build` [+ preview]) | 8 | **[SKILL CANDIDATE]** |
+| Autonomous append to `conversation-history.md` at each milestone (P7) | 8 | **[SKILL CANDIDATE]** |
 | "Don't assume — ask on ambiguity before acting" | 1 | — |
-| "Phase complete → stop for user acceptance" | 1 (recurs per phase) | watch |
 | "Honor constitution slice/idempotency rules" | 1 | — |
 
-_No interaction has reached the ≥3 threshold yet._
+**Automation opportunity:** the "execute phase → lint+build → append history → stop for
+acceptance" cycle recurred 8× and is a prime candidate to promote into a reusable skill.

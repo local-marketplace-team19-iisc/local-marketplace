@@ -309,3 +309,84 @@ vendor-gated (AC-13/14/15).
 **Approval state:** Phase 7 complete; awaiting acceptance to start Phase 8 (Docs +
 finalize: README, UI_DESIGN, COMPONENT/ROUTING/API docs, TEST_CASES.md, SCREENSHOTS
 placeholder, Dockerfile; final build/lint + responsiveness review).
+
+---
+
+## Session 1 — 2026-06-18 (Phase 8: Docs + finalize)
+
+**Context / goal:** Produce the §5 output docs, containerization, and run the final
+verification — closing out the feature.
+
+**Work done (`frontend/`):**
+- Docs: `README.md`, `UI_DESIGN.md`, `COMPONENT_DOCUMENTATION.md`,
+  `ROUTING_DOCUMENTATION.md`, `API_INTEGRATION_GUIDE.md` (assumed contract + JWT/mocks),
+  `TEST_CASES.md` (AC-01…20 mapping), `SCREENSHOTS/README.md` (capture instructions).
+- Containerization: `Dockerfile` (multi-stage Node→nginx), `nginx.conf` (SPA fallback),
+  `.dockerignore`.
+
+**Decisions / notes:**
+- **Binary deliverable substitutions (as flagged in plan):** `TEST_CASES.xlsx` →
+  `TEST_CASES.md`; `SCREENSHOTS/*.png` → manual capture (instructions provided).
+- **Docker image build NOT verified locally:** the Docker daemon was not running in this
+  environment (`docker build` failed to connect). The Dockerfile/nginx.conf are provided
+  and reference the correct `build/` output + `package-lock.json`, but the image build is
+  **unverified** — to be confirmed where a daemon is available.
+
+**Verification (passed):** `npm run lint` clean; `npm run build` ok (95 modules, ~2.7s,
+JS ~85 kB gzip → AC-20/16). Secrets check: `git check-ignore` confirms `frontend/.env`
+and `node_modules` are ignored (P4). All §5 output files present.
+
+**Acceptance criteria status:** AC-18/19 (lint/a11y rules) and AC-20 (build) verified
+automatically; AC-01–17 are implemented and verifiable via the browser checklist in
+`TEST_CASES.md` (manual click-through + screenshots pending a human run).
+
+**Edge cases / unknowns:** Docker build unverified (daemon down). Open
+`[NEEDS CLARIFICATION]` from `spec.md` §7 remain (backend contract, UI-kit, xlsx) —
+non-blocking.
+
+**Files altered:** new `frontend/{README,UI_DESIGN,COMPONENT_DOCUMENTATION,
+ROUTING_DOCUMENTATION,API_INTEGRATION_GUIDE,TEST_CASES}.md`, `frontend/Dockerfile`,
+`frontend/nginx.conf`, `frontend/.dockerignore`, `frontend/SCREENSHOTS/README.md`.
+No other slice touched.
+
+**Approval state:** **Phase 8 complete — all 9 phases (0–8) of `plan.md` executed.**
+Frontend feature implementation is done pending: (a) manual browser verification +
+screenshots, (b) Docker image build on a host with a running daemon, (c) human PR to
+reconcile `SPEC.md` §5 React 18→19 (R1) and to promote any shared rules to root CLAUDE.md.
+
+---
+
+## Session 2 — 2026-06-19 (Browser verification)
+
+**Context / goal:** User asked to see manual browser verification. Drove the running app
+in a real browser and captured evidence (closes item (a) above).
+
+**Method:** Started the Vite dev server (`npm run dev`, mock mode). Drove the system
+**Microsoft Edge** via `playwright-core` (channel `msedge`; no browser download) with a
+headless script exercising the end-to-end flows and capturing console/page errors.
+
+**Results — PASS (all flows, zero console/page errors):**
+- Login (customer `customer@demo.com`) → redirect to `/`.
+- Search "tomato" → 2 cards, **cheapest-first** (₹28.50 then ₹32.00); each card shows
+  name/price/vendor/rating/availability (AC-09/10).
+- Add to cart → Orders → Place order → "Order placed — ORD-… · total ₹28.50" (single
+  order number, AC; master SPEC §3).
+- Chatbot "milk" → bot reply with a cheapest-first listing (AC-11/12).
+- Vendor login → Dashboard stats (2 products, 65 units, ₹3972.50 value).
+- Vendor CRUD: ADD (rows 2→3) → EDIT (price → ₹55.00) → DELETE (rows 3→2)
+  (AC-13/14/15).
+- **AC-18 confirmed:** `CONSOLE_ERRORS: []`, `PAGE_ERRORS: []` across the whole run.
+
+**Screenshots captured** to `frontend/SCREENSHOTS/`: `Login.png`, `Search.png`,
+`Chatbot.png`, `Dashboard.png`, `VendorDashboard.png`.
+
+**Findings / notes:**
+- In-memory JWT + cart (C-09) means a full page reload ends the session — confirmed
+  (initial script used `page.goto` and got bounced to login). Real-user SPA navigation
+  works correctly; documented behaviour, not a defect.
+- `LoginPage` always redirects to the intended/home route; only `RegisterPage`
+  role-routes to `/vendor`. Vendors reach vendor screens via the navbar. Minor UX note
+  (consider role-routing on login too), not a bug.
+
+**Files altered:** added PNGs under `frontend/SCREENSHOTS/` (untracked). No source code
+changed during verification.
