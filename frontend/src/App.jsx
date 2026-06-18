@@ -1,11 +1,16 @@
-// Phase 1 scaffold shell. Routing, providers, and pages are wired in later phases
-// (Phase 2: providers/services; Phase 3: routing). Kept minimal to verify the build.
+import { AppProviders } from './store/store'
+
+// App shell wrapped in the global Context providers (D2). Routing and pages are
+// wired in Phase 3; for now this verifies the provider tree mounts and builds.
 function App() {
   return (
-    <main className="app-shell">
-      <h1>Local Marketplace</h1>
-      <p>Frontend scaffold is running. Pages &amp; routing arrive in later phases.</p>
-    </main>
+    <AppProviders>
+      <main className="app-shell">
+        <h1>Local Marketplace</h1>
+        <p>Core infrastructure is wired (services, mocks, contexts, hooks).</p>
+        <p>Routing &amp; pages arrive in the next phases.</p>
+      </main>
+    </AppProviders>
   )
 }
 

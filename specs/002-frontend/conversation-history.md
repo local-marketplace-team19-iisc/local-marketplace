@@ -87,3 +87,46 @@ future run commands. No `[NEEDS CLARIFICATION]` added.
 
 **Approval state:** Phase 1 complete; awaiting acceptance to start Phase 2 (core infra:
 utils, services + mocks, store/ contexts, hooks).
+
+---
+
+## Session 1 — 2026-06-18 (Phase 2: Core infra)
+
+**Context / goal:** Build the non-visual foundation: config/utilities, REST service
+layer with the mock dispatcher (D3), Context providers/reducers (D2), and hooks.
+
+**Work done (all under `frontend/src/`):**
+- `utils/`: `constants.js` (env-driven `API_BASE_URL`/`USE_MOCKS`, `API_ROUTES`, `ROUTES`,
+  `ROLES`, `PRODUCT_CATEGORIES`, `CURRENCY`), `helpers.js` (`formatPrice` ₹/2dp,
+  `formatDate`, `classNames`, `truncate`, `sleep`, `uid`, `toErrorMessage`),
+  `validators.js` (login/register/product validators → AC-05).
+- `services/`: `apiError.js` (shared `ApiError`), `apiClient.js` (fetch wrapper +
+  in-memory `setAuthToken`/`getAuthToken` per C-09 + `USE_MOCKS` branch), the five
+  services (`auth/product/search/chatbot/order`), and `_mocks/` (`mockData.js` seed +
+  token helpers; `index.js` dispatcher implementing the full §6 contract incl. vendor
+  CRUD, cheapest-first search, chat, and order placement with inventory decrement).
+- `store/`: `authContext.jsx`, `productContext.jsx` (catalog + favorites + multi-vendor
+  cart + orders), `chatbotContext.jsx` (in-memory session history → AC-12), `store.jsx`
+  (`AppProviders` tree). All Context + `useReducer`, **no Redux** (D2).
+- `hooks/`: `useAuth`, `useProducts`, `useChat` (context accessors with guards).
+- Wired `AppProviders` into `App.jsx`.
+
+**Decisions / notes:**
+- **`store/` filenames** are `*Context.jsx` (not `*Slice.js`) — the explicit D2 reframe.
+  Folder name `store/` retained per the spec layout.
+- **In-memory JWT enforced**: token set into `apiClient` on login, cleared on logout;
+  never persisted (C-09). Refresh ends the session (documented limitation).
+- **Mock demo accounts** seeded: `customer@demo.com` / `vendor@demo.com` (pw `demo1234`)
+  — to be documented in `API_INTEGRATION_GUIDE.md` (Phase 8).
+- Cart spans vendors; `placeOrder` returns one order number + decrements mock stock
+  (master SPEC §3 behaviour).
+
+**Verification (passed):** `npm run lint` clean; `npm run build` ok (44 modules, ~1.1s).
+
+**Edge cases / unknowns:** none new. No `[NEEDS CLARIFICATION]` added.
+
+**Files altered:** new `src/utils/*`, `src/services/**`, `src/store/*`, `src/hooks/*`;
+modified `src/App.jsx`. No other slice touched.
+
+**Approval state:** Phase 2 complete; awaiting acceptance to start Phase 3 (common
+components + routing: Button/Loader/Modal/Navbar, AppRoutes + ProtectedRoute).
