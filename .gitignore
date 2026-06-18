@@ -6,6 +6,9 @@ copilotBytesTracker/
 
 CLAUDE.local.md
 
+# Active feature context (Constitution P7) — local-only, never committed
+.active_feature
+
 # Secrets (Constitution P4) — .env.example is committed, .env is not
 .env
 .venv/

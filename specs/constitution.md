@@ -37,3 +37,11 @@ Secrets live in `.env` (gitignored). `.env.example` is committed with placeholde
 When any spec or scaffold is executed, the agent must check for file existence before writing:
 - Governance & config files (`constitution.md`, `.gitignore`, `pyproject.toml`, `CLAUDE.md`, etc.) — if the file exists, append or merge only missing sections. Never truncate or overwrite existing content.
 - Feature code files — only create or modify files scoped to the current feature. Files owned by another feature are off-limits.
+
+#Principle 7 - Context Binding & Automated Artifact Management via .active_feature
+
+A gitignored `.active_feature` file at the project root holds the single current feature ID (e.g., `001-db-schema`). It is the canonical source of truth for which feature is active, and is never committed (consistent with Principle 4's treatment of local-only state).
+
+- **Context binding.** At the start of every interaction, the agent MUST implicitly read `.active_feature` and bind all subsequent work to the corresponding `specs/<active-feature>/` directory — its `spec.md`, `plan.md`, `prompts.md`, and `conversation-history.md`. The agent does not ask the user which feature is active when this file resolves successfully.
+- **Fail-closed.** If `.active_feature` is missing, empty, or names a directory that does not exist under `specs/`, the agent MUST halt execution and ask the user to set a valid active feature. It MUST NOT guess the feature, fall back to a default, or proceed with implementation while context is unbound.
+- **Automated history appending.** At the conclusion of any development session, milestone, or major architectural decision, the agent MUST autonomously append a timestamped, concise entry to `specs/<active-feature>/conversation-history.md` — capturing the session's context/goal, the decision(s) made and their reasoning, and the files altered. This is part of the agent's normal output generation, not a step that requires user permission, and it MUST satisfy the append-only guarantees of Principle 3 and Principle 6 (earlier entries are never overwritten or truncated).
