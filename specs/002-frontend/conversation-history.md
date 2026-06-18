@@ -166,3 +166,40 @@ No other slice touched.
 
 **Approval state:** Phase 3 complete; awaiting acceptance to start Phase 4 (Auth:
 Login/Register pages + useAuth wiring; AC-06/07/08).
+
+---
+
+## Session 1 — 2026-06-18 (Phase 4: Auth)
+
+**Context / goal:** Implement the authentication surface — register, login, and
+redirect-back after a protected-route bounce (AC-06/07/08).
+
+**Work done (`frontend/src/`):**
+- `assets/styles/forms.css`: shared form primitives (`.form-input/.form-error/
+  .form-banner`, etc.) reused by auth + later vendor/product forms (AC-05).
+- `pages/auth.css`: auth card/layout + role-selector styling.
+- `pages/LoginPage.jsx`: validated login form, error banner, loading state; redirects to
+  `location.state.from` (set by `ProtectedRoute`) or home (AC-07/08). Shows demo creds.
+- `pages/RegisterPage.jsx`: validated registration with a customer/vendor radiogroup;
+  vendors land on `/vendor`, customers on `/` (AC-06).
+- `routes/AppRoutes.jsx`: swapped the `/login` and `/register` placeholders for the real
+  pages.
+
+**Decisions / notes:**
+- Field-level a11y: every input has a `<label htmlFor>`, `aria-invalid`, and
+  `aria-describedby` wiring to its error/hint (AC-05/19). Forms use `noValidate` so our
+  validators (not the browser) own messaging.
+- Errors come from the auth context (`error`); the submit `catch` is intentionally empty
+  (no console noise → AC-18).
+
+**Verification (passed):** `npm run lint` clean; `npm run build` ok (69 modules, ~3s).
+Interactive login/redirect flow to be captured in Phase 8 screenshots (needs a browser).
+
+**Edge cases / unknowns:** none new.
+
+**Files altered:** new `src/assets/styles/forms.css`, `src/pages/auth.css`,
+`src/pages/LoginPage.jsx`, `src/pages/RegisterPage.jsx`; modified
+`src/routes/AppRoutes.jsx`. No other slice touched.
+
+**Approval state:** Phase 4 complete; awaiting acceptance to start Phase 5 (Customer:
+Search/Product/Favorites/Orders pages + product components; AC-09/10).

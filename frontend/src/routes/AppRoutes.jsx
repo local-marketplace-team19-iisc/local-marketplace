@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute'
 import { ROLES } from '../utils/constants'
+import LoginPage from '../pages/LoginPage'
+import RegisterPage from '../pages/RegisterPage'
 
 // Central route table. Pages are filled in across Phases 4–7; until a page exists it
 // renders this placeholder so routing + the ProtectedRoute guard (AC-08) are verifiable.
@@ -18,8 +20,8 @@ function AppRoutes() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<Placeholder title="Home" />} />
-      <Route path="/login" element={<Placeholder title="Login" />} />
-      <Route path="/register" element={<Placeholder title="Register" />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route path="/search" element={<Placeholder title="Search" />} />
       <Route path="/product/:id" element={<Placeholder title="Product" />} />
       <Route path="/chat" element={<Placeholder title="Chatbot" />} />

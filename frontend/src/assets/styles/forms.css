@@ -1,0 +1,64 @@
+/* Shared form styling reused by auth, vendor, and product forms (AC-05). */
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.form-textarea { min-height: 90px; resize: vertical; }
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+.form-input[aria-invalid='true'],
+.form-select[aria-invalid='true'],
+.form-textarea[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+.form-error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+.form-hint {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.form-banner {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+.form-banner--error {
+  background: #fdecea;
+  color: #97211b;
+  border: 1px solid #f5c6c2;
+}
+.form-banner--info {
+  background: #eef3fe;
+  color: #1d4ed8;
+  border: 1px solid #cfe0fd;
+}
