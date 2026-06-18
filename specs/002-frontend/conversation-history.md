@@ -203,3 +203,43 @@ Interactive login/redirect flow to be captured in Phase 8 screenshots (needs a b
 
 **Approval state:** Phase 4 complete; awaiting acceptance to start Phase 5 (Customer:
 Search/Product/Favorites/Orders pages + product components; AC-09/10).
+
+---
+
+## Session 1 — 2026-06-18 (Phase 5: Customer features)
+
+**Context / goal:** Build the customer shopping surface — search, product details,
+favorites, and the multi-vendor cart → order flow (AC-09/10).
+
+**Work done (`frontend/src/`):**
+- `components/products/`: `ProductCard` (+css) showing the AC-10 fields (name, price,
+  vendor, rating, availability) with favorite + add-to-cart; `ProductList` (+css)
+  responsive grid + empty state; `ProductDetails` (+css) with qty selector + actions.
+- `pages/`: `SearchPage` (+`search.css`) with search bar, loader, results; `ProductPage`
+  (fetch by `:id`); `FavoritesPage`; `OrdersPage` (+`orders.css`) — cart, checkout
+  (single order number across vendors), and order history; confirmation banner.
+- `index.css`: added shared `.badge`/`.page-title` styles.
+- `AppRoutes.jsx`: `/` and `/search` → SearchPage; `/product/:id` → ProductPage;
+  `/favorites`, `/orders` → real pages (still protected).
+
+**Decisions / notes:**
+- **Data-fetching pattern:** pages call the **service modules directly** inside effects
+  (`getProduct`, `searchProducts`, `listOrders`) using local state, while the Product
+  **context** handles cart/favorites/order mutations (event-driven). This deliberately
+  avoids a render loop that would arise from depending on the context's non-memoized
+  action functions in `useEffect`, and keeps `react-hooks/exhaustive-deps` warning-free.
+  `runSearch`/`loadOrders` are wrapped in `useCallback` for the same reason.
+- Search results omit `vendorId`; the mock order endpoint resolves items by `productId`,
+  so add-to-cart from search works correctly.
+
+**Verification (passed):** `npm run lint` clean; `npm run build` ok (83 modules, ~3.3s).
+Click-through (search → cart → place order) to be captured in Phase 8 screenshots.
+
+**Edge cases / unknowns:** none new.
+
+**Files altered:** new `src/components/products/*`, `src/pages/{SearchPage,ProductPage,
+FavoritesPage,OrdersPage}.jsx` + `search.css`/`orders.css`; modified `src/index.css`,
+`src/routes/AppRoutes.jsx`. No other slice touched.
+
+**Approval state:** Phase 5 complete; awaiting acceptance to start Phase 6 (Chatbot:
+ChatWindow/ChatInput/MessageBubble + useChat; AC-11/12).

@@ -69,6 +69,22 @@ img {
   padding: calc(var(--space) * 2) var(--space);
 }
 
+/* Status badges (in stock / out of stock, order state). */
+.badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.badge--ok { background: #e6f5ec; color: var(--color-success); }
+.badge--off { background: #fdecea; color: var(--color-danger); }
+.badge--info { background: #eef3fe; color: var(--color-primary); }
+
+/* Page section heading. */
+.page-title { margin: 24px 0 16px; }
+
 /* Visually-hidden helper for accessible labels (AC-19). */
 .visually-hidden {
   position: absolute;
