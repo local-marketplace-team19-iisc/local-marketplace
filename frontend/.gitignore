@@ -1,0 +1,8 @@
+# Frontend-local ignores (keeps root .gitignore untouched — Constitution P6)
+node_modules/
+build/
+dist/
+.env
+*.local
+.eslintcache
+npm-debug.log*
