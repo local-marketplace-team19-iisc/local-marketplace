@@ -48,6 +48,20 @@ the assumed REST contract (see `API_INTEGRATION_GUIDE.md`). Demo logins:
 | Customer | `customer@demo.com` | `demo1234` |
 | Vendor | `vendor@demo.com` | `demo1234` |
 
+## NLP, voice & image input (AC-09/11/13/14/15)
+
+- **Search** (customers): text, **voice** (mic), or **image** upload → matched products.
+- **Chatbot** (AC-11): **voice, text, and image** — attach an image or dictate a message.
+- **Auto-fill products** (vendors): describe a product in a prompt (typed or **dictated**)
+  or upload an image → extracted fields pre-fill the Add/Edit form for review, then save.
+- **Delete by description** (vendors): type or say "remove the milk" → confirm → delete.
+
+**Voice** uses the browser **Web Speech API** (Chrome/Edge; the mic is hidden where
+unsupported, e.g. Firefox) — aligns with the master spec's "voice→text". **Image/NLP** in
+mock mode are **heuristic, not real vision** (prompt parsing / image filename); they call
+`POST /api/search/image`, `POST /api/extract/product`, and `POST /api/chat` (multipart),
+wired to a real backend by flipping `VITE_USE_MOCKS`. See `API_INTEGRATION_GUIDE.md`.
+
 ## Switching to the real backend
 
 1. Set `VITE_USE_MOCKS=false` and `VITE_API_BASE_URL` to the backend URL.

@@ -31,7 +31,11 @@ export async function apiRequest(method, path, { body, params } = {}) {
     })
   }
 
-  const headers = { 'Content-Type': 'application/json' }
+  // multipart/form-data (image upload / extraction): let the browser set the boundary
+  // Content-Type and send the FormData as-is; otherwise send JSON.
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData
+  const headers = {}
+  if (!isForm) headers['Content-Type'] = 'application/json'
   if (authToken) headers.Authorization = `Bearer ${authToken}`
 
   let res
@@ -39,7 +43,7 @@ export async function apiRequest(method, path, { body, params } = {}) {
     res = await fetch(url, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
     })
   } catch {
     throw new ApiError('Network error — please check your connection.', 0)

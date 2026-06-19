@@ -36,6 +36,11 @@ Accessible: `role="dialog"`, `aria-modal`, Escape to close, keyboard-operable ba
 No props. Reads `useAuth` + `useProducts`; renders role/auth-aware links and a responsive
 toggle menu.
 
+### `VoiceButton` — `{ onText, title?, disabled? }`
+Mic toggle (voice→text, D9). Calls `onText(transcript)`. Built on the `useVoiceInput`
+hook (Web Speech API); **renders nothing where unsupported** (e.g. Firefox), so the text
+input always remains. Used in search, chat, vendor extract, and voice-delete.
+
 ## Products
 
 ### `ProductCard` — `{ product }`
@@ -48,6 +53,11 @@ Responsive grid of `ProductCard`s with an empty state.
 ### `ProductDetails` — `{ product }`
 Full view with quantity selector, favorite, add-to-cart.
 
+### `ProductExtractPanel` — `{ onExtracted }`
+NLP-prompt + image-upload control used in the vendor add/edit modal (AC-13/14, D5/D6).
+Calls `extractProduct({ prompt, image })` and invokes `onExtracted(productFields)` so the
+parent pre-fills the form for review. Shows its own loading/error state.
+
 ## Chatbot
 
 ### `MessageBubble` — `{ message }`
@@ -55,7 +65,8 @@ Full view with quantity selector, favorite, add-to-cart.
 listings as links to the product page.
 
 ### `ChatInput` — `{ onSend, disabled }`
-Controlled composer; submits on Enter, clears on send.
+Controlled composer with text, **voice** (mic), and **image attach**. Calls
+`onSend(text, image?)`; submits on Enter; clears text + image after send.
 
 ### `ChatWindow`
 No props. Reads `useChat`; renders history, a typing loader, auto-scrolls; hosts
@@ -69,3 +80,6 @@ No props. Reads `useChat`; renders history, a typing loader, auto-scrolls; hosts
   `toggleFavorite`, `isFavorite`, `addToCart`, `removeFromCart`, `clearCart`,
   `placeOrder`, `cartTotal`, `cartCount`)
 - `useChat()` → `{ messages, status, error, sessionId, sendMessage, reset }`
+  (`sendMessage(text, image?)`)
+- `useVoiceInput({ onResult, lang? })` → `{ supported, listening, error, start, stop, toggle }`
+  — Web Speech API wrapper (D9)

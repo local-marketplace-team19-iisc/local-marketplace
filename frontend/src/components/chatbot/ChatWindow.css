@@ -20,10 +20,50 @@
 }
 .chat-input {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 12px;
   border-top: 1px solid var(--color-border);
   background: var(--color-bg);
+}
+.chat-input__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.chat-input__attach {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.chat-input__attach:hover { background: #f1f3f5; }
+.chat-input__attach-icon { width: 24px; height: 24px; object-fit: contain; display: block; }
+.chat-input__chip {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+.chat-input__chip-x {
+  border: 0;
+  background: transparent;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-muted);
 }
 .chat-input__field {
   flex: 1;

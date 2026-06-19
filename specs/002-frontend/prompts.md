@@ -31,6 +31,19 @@ Secrets are never recorded here (P4).
 12. **User:** "proceed with Phase 6" → Agent: chatbot components + page.
 13. **User:** "proceed with Phase 7" → Agent: vendor Dashboard + product CRUD.
 14. **User:** "proceed with Phase 8" → Agent: docs, Dockerfile, final build/lint.
+15. **User:** "I need to see manual browser verification" → Agent: drove the app in Edge
+    via `playwright-core`, captured 5 screenshots, all flows PASS.
+16. **User:** "up the local server to check in browser" → Agent: started dev server.
+17. **User:** revised spec AC-09/13/14/15 (NLP + image); "update frontend part" → Agent:
+    asked 4 clarifying questions (D5–D8), updated spec/plan/architecture, awaited approval.
+18. **User:** "approve, implement Phase 9" → Agent: implemented NLP/image (search + vendor
+    extract), build/lint clean, browser-verified.
+19. **User:** "are we able to see the new changes on dev server" → Agent: confirmed server
+    up + HMR applied; pointed to the new UI.
+20. **User:** revised spec AC-09/11/13/14/15 (voice; chatbot voice/image); "update frontend
+    part" → Agent: asked 3 questions (D9–D11), updated spec/plan/architecture, awaited approval.
+21. **User:** "approve, implement Phase 10" → Agent: implemented voice (Web Speech API),
+    chatbot image, voice/NLP delete; build/lint clean; automatable paths browser-verified.
 
 ## Recurring interactions
 

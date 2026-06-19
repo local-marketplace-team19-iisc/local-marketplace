@@ -22,6 +22,17 @@ backend services. It integrates over **REST** (C-03) and is configurable via env
 | **D2** | State management | **React Context API + `useReducer`** (C-02). The `src/store/` folder is kept but files are **Context providers/reducers** (`authContext`, `productContext`, `chatbotContext`, combined `store.jsx`), **not** Redux slices. No Redux dependency. | C-02 is explicit; layout naming overruled. |
 | **D3** | Backend integration | **Mock against an assumed REST contract** (see §6). A service layer is toggled by `VITE_USE_MOCKS`; real backend wired later via `VITE_API_BASE_URL`. | Backend currently exposes only `GET /health`. |
 | **D4** | Frontend `CLAUDE.md` + `plan.md` location | Both placed in **`specs/002-frontend/`**. | User request. (A `CLAUDE.md` there is informational, not auto-loaded.) |
+| **D5** | NLP/image input (AC-09/13/14/15 update) | **Build the NLP-prompt + image-upload UI and mock the extraction** behind `VITE_USE_MOCKS` (extends D3). Real NLP/vision backend wired later. | User decision; backend NLP/vision not available. |
+| **D6** | Vendor extraction flow (AC-13/14) | Extraction **pre-fills the add/edit form for vendor review then save** — keeps validation (AC-05) and a human check. | User decision. "directly to inventory" interpreted as prefill→confirm. |
+| **D7** | AC-15 delete | **Delete stays normal** (button + confirm Modal). The NLP/image clause applies to add/update only. | User decision. |
+| **D8** | AC-09 image search | Search page gains **image upload → matched products**, alongside the existing text/NLP query. | User decision. |
+| **D9** | Voice input (AC-09/11/13/14/15 update) | **Browser Web Speech API** (`SpeechRecognition`) for voice→text; reusable `useVoiceInput` hook + `VoiceButton`. Mic is hidden/disabled where unsupported (e.g. Firefox/older Safari). | User decision. **Aligns with master `SPEC.md` §2** ("voice→text later") — not a divergence. |
+| **D10** | Chatbot inputs (AC-11) | Chat input adds a mic (voice→text) **and image attach**; image is sent to `POST /api/chat` (multipart) → reply + listings (mocked). | User decision. |
+| **D11** | Delete via voice/NLP (AC-15) | A voice/text prompt names the product (e.g. "remove the milk"); the frontend matches it among the vendor's products and opens the existing **delete confirmation** before deleting. | User decision (supersedes D7's "normal only"). |
+
+> **Image input is beyond master `SPEC.md`** (which describes text + "voice→text later",
+> no images). Logged in `docs/architecture.md` and flagged for a human PR — not edited
+> into `SPEC.md` by the AI (P5).
 
 ## 3. Constraints (from input spec)
 
@@ -52,6 +63,15 @@ Inherits **AC-01 … AC-20** from `002-frontend-SPEC.md` §4 verbatim. Verificat
 lives in `plan.md` and `frontend/TEST_CASES.md`. Binary deliverables are substituted:
 `TEST_CASES.xlsx` → `TEST_CASES.md`; `SCREENSHOTS/*.png` captured manually post-build.
 
+**Updated AC's (spec revision 2026-06-19):**
+- **AC-09** — customers can search via NLP prompts (**voice and text**) **or by uploading
+  an image**; the (mocked) backend extracts/matches products (D8/D9).
+- **AC-11** — chatbot accepts **voice, text, and image** input; renders API replies (D10).
+- **AC-13/14** — vendors can add/update products via an NLP prompt (**voice and text**)
+  **or an image**; extracted fields **pre-fill the form for review then save** (D5/D6/D9).
+- **AC-15** — delete via a **voice/text prompt** that names the product, then confirm
+  (D11, supersedes the earlier "normal delete only").
+
 ## 6. Assumed REST API contract (mocked now; backend to confirm)
 
 Base `${VITE_API_BASE_URL}` (default `http://localhost:8000`), JSON, Bearer JWT.
@@ -61,8 +81,15 @@ Base `${VITE_API_BASE_URL}` (default `http://localhost:8000`), JSON, Bearer JWT.
 | Auth | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` | `role: customer|vendor`; returns `{token,user}`. |
 | Products | `GET /api/products?query=&page=`, `GET /api/products/:id`, `POST/PUT/DELETE /api/products[/:id]` | vendor CRUD = AC-13/14/15. |
 | Search | `GET /api/search?q=` | returns Name, Price, Vendor, Rating, Availability (AC-10). |
-| Chatbot | `POST /api/chat` `{message,sessionId}` → `{reply,listings?}` | AC-11/12. |
+| Search (image) | `POST /api/search/image` (multipart `image`) → `{results}` | NLP/vision image search (AC-09, D8). |
+| Extract | `POST /api/extract/product` (multipart `image` and/or `prompt`) → `{product}` | NLP/vision field extraction for vendor add/update prefill (AC-13/14, D5/D6). |
+| Chatbot | `POST /api/chat` — `{message,sessionId}` (JSON) **or** multipart with `image` | → `{reply,listings?}`. Voice is transcribed client-side (Web Speech API) into `message`; image attach is multipart (AC-11, D9/D10). |
 | Orders | `GET /api/orders`, `POST /api/orders` | multi-vendor cart → one order number (SPEC §3). |
+
+> Image/extraction endpoints use `multipart/form-data`. The frontend builds `FormData`;
+> the **service layer** is the only place that changes when swapping the mock for the
+> real NLP/vision backend (D3/D5). The mock derives fields heuristically from the
+> prompt text / image filename (clearly not real vision) — for UI/flow demonstration.
 
 ## 7. Open `[NEEDS CLARIFICATION]`
 

@@ -17,13 +17,19 @@ verified. **Status legend:** ✅ automated (build/lint), 🔬 manual (browser), 
 | AC-06 | Register | Register customer & vendor | Account created, redirected | 🔬 | Pass |
 | AC-07 | Login | Login with demo creds | Authenticated, redirected | 🔬 | Pass |
 | AC-08 | Protected routes | Open `/orders` logged out | Redirect to `/login`, back after login | 🔬 | Pass |
-| AC-09 | Search | Search a term | Matching results shown | 🔬 | Pass |
+| AC-09 | Search (text/NLP) | Search a term | Matching results shown | 🔬 | Pass |
+| AC-09b | Search by image | Upload an image, click "Search by image" | Matched products returned (mocked vision) | 🔬 | Pass |
+| AC-09c | Search by voice | Click mic, speak a term | Speech→text fills query + searches | 🎙️ | Manual (mic) |
+| AC-11b | Chat by image | Attach an image in chat, send | Bot reply + listings; user bubble shows the image | 🔬 | Pass |
+| AC-11c | Chat by voice | Click mic in chat, speak | Speech→text into the message box | 🎙️ | Manual (mic) |
 | AC-10 | Result fields | Inspect a result card | Name, Price, Vendor, Rating, Availability | 🔬 | Pass |
 | AC-11 | Chatbot replies | Send a message | API reply rendered (+ listings) | 🔬 | Pass |
 | AC-12 | Chat history | Send several, navigate within app | History persists for the session | 🔬 | Pass |
-| AC-13 | Vendor add | Add a product | Appears in vendor list | 🔬 | Pass |
-| AC-14 | Vendor update | Edit a product | Changes persist | 🔬 | Pass |
-| AC-15 | Vendor delete | Delete a product | Removed after confirm | 🔬 | Pass |
+| AC-13 | Vendor add | Add a product (manual or via prompt/image extract) | Appears in vendor list | 🔬 | Pass |
+| AC-13b | Add via NLP/image | "Auto-fill from prompt or image" → fields pre-fill → save | Extracted fields populate form; saved product appears | 🔬 | Pass |
+| AC-14 | Vendor update | Edit a product (manual or via extract) | Changes persist | 🔬 | Pass |
+| AC-15 | Vendor delete | Delete a product (button) | Removed after confirm | 🔬 | Pass |
+| AC-15b | Delete by description | Type/say "remove the milk" → Find & delete | Matched product → confirm → removed | 🔬 | Pass |
 | AC-16 | Initial load < 3s | Load production build | Loads quickly (gzip JS ~85 kB) | 🔬 | Pass |
 | AC-17 | API render < 1s | Trigger a call | Result renders promptly (mock ~200ms) | 🔬 | Pass |
 | AC-18 | No console errors | Open devtools, use app | No errors (`no-console` lint rule) | ✅/🔬 | Pass |
@@ -42,5 +48,8 @@ verified. **Status legend:** ✅ automated (build/lint), 🔬 manual (browser), 
    number in history.
 3. Use the chatbot (`/chat`) — confirm replies + listing links + session history.
 4. Login as `vendor@demo.com` → Dashboard stats → Products → add/edit/delete.
-5. Logout → confirm `/orders`, `/vendor` redirect to login.
-6. Resize 320 → 1920px; confirm nav/grid/table adapt.
+5. On Search, choose an image + "Search by image" → matched products (AC-09).
+6. As vendor → Products → Add product → type a prompt (e.g. "Amul butter 100g, ₹58, 30
+   in stock, Dairy") → "Auto-fill fields" → confirm fields pre-fill → save (AC-13).
+7. Logout → confirm `/orders`, `/vendor` redirect to login.
+8. Resize 320 → 1920px; confirm nav/grid/table adapt.

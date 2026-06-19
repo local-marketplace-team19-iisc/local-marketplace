@@ -56,11 +56,30 @@ Base: `${VITE_API_BASE_URL}`. JSON request/response. `🔒` = requires Bearer to
 | Method | Path | Response |
 | :-- | :-- | :-- |
 | GET | `/api/search?q=` | `{ results: { id, name, price, vendor, rating, availability }[] }` — cheapest-first |
+| POST | `/api/search/image` | `multipart/form-data` field `image` → `{ results: [...] }` (AC-09, D8) |
+
+### NLP / image extraction (AC-13/14, D5/D6)
+| Method | Path | Body | Response |
+| :-- | :-- | :-- | :-- |
+| POST | `/api/extract/product` | `multipart/form-data`: `prompt` (text) and/or `image` (file) | `{ product: { name, price, stock, category, description } }` |
+
+The frontend builds `FormData` (`apiClient` skips the JSON header for FormData and lets the
+browser set the multipart boundary). Extracted fields **pre-fill the vendor form for review
+then save** (D6) — they are not written to inventory unattended.
+
+> **Mock note (dev):** the mock does **not** perform real NLP/vision. It derives fields
+> heuristically from the prompt text (price/stock/category/name) or the image **filename**.
+> Replace with the real NLP/vision backend by flipping `VITE_USE_MOCKS=false`; only the
+> service layer (`searchService.searchByImage`, `extractService.extractProduct`) changes.
 
 ### Chatbot
 | Method | Path | Body | Response |
 | :-- | :-- | :-- | :-- |
-| POST | `/api/chat` | `{ message, sessionId }` | `{ reply, listings?, sessionId }` |
+| POST | `/api/chat` | `{ message, sessionId }` (JSON) **or** multipart with `image` (+`message`,`sessionId`) | `{ reply, listings?, sessionId }` |
+
+Chatbot inputs are voice, text, and image (AC-11). **Voice is transcribed client-side**
+(Web Speech API) into `message` — there is no audio endpoint. An attached **image** is
+sent as multipart; the mock derives a keyword from the filename.
 
 ### Orders
 | Method | Path | Body | Response |

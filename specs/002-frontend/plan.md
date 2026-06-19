@@ -121,6 +121,110 @@ Base: `${VITE_API_BASE_URL}` (default `http://localhost:8000`). All JSON.
 - **Phase 8 — Docs + finalize:** all `*.md` docs, `Dockerfile`, `SCREENSHOTS/`,
   `TEST_CASES.md`; final `npm run build` + `eslint` clean; responsiveness review.
 
+---
+
+## Plan delta — Phase 9: NLP & image input (spec revision 2026-06-19)
+
+Adds AC-09/13/14/15 NLP-prompt + image capabilities per decisions **D5–D8**. Scope stays
+within `frontend/` (+ append-only audit/log). Backend NLP/vision is mocked (D5).
+
+### New / changed behavior
+- **AC-09:** SearchPage gains an **image upload** → `POST /api/search/image` → matched
+  products (alongside the existing text/NLP `GET /api/search?q=`).
+- **AC-13/14:** Vendor add/edit Modal gains an **"Auto-fill from prompt or image"**
+  panel → `POST /api/extract/product` → returned fields **pre-fill the form** for review,
+  then the existing validated save (AC-05). 
+- **AC-15:** unchanged (normal delete + confirm, D7).
+
+### Files to CREATE
+| Path | Purpose |
+| :-- | :-- |
+| `frontend/src/services/extractService.js` | `extractProduct({prompt,image})` → `/api/extract/product` |
+| `frontend/src/components/products/ProductExtractPanel.jsx` (+css) | NLP prompt + image upload control, used by the vendor form |
+| `frontend/src/components/products/ImageSearchBar.jsx` (+css) *(or inline in SearchPage)* | image upload for search |
+
+### Files to MODIFY (within feature slice)
+| Path | Change |
+| :-- | :-- |
+| `frontend/src/services/apiClient.js` | support `FormData` bodies (skip JSON header/stringify); mock branch passes FormData through |
+| `frontend/src/services/searchService.js` | add `searchByImage(file)` (multipart) |
+| `frontend/src/services/_mocks/index.js` | handle `POST /api/search/image` + `POST /api/extract/product`; FormData-aware; heuristic field/keyword derivation |
+| `frontend/src/utils/constants.js` | add `API_ROUTES.searchImage`, `API_ROUTES.extractProduct` |
+| `frontend/src/pages/SearchPage.jsx` | add image-search UI + handler |
+| `frontend/src/pages/VendorPage.jsx` | embed `ProductExtractPanel` in add/edit modal; prefill form from extraction |
+| `frontend/{API_INTEGRATION_GUIDE,COMPONENT_DOCUMENTATION,TEST_CASES,README}.md` | document new endpoints/components/AC tests + multipart note |
+| `docs/architecture.md` | **already appended** (D5–D8 + master-SPEC image divergence) |
+| `specs/002-frontend/{spec.md}` | **already updated** (D5–D8, §5 AC's, §6 endpoints) |
+
+### Mock approach (D5 — clearly not real vision)
+- `extract/product`: parse a `prompt` for a price number / known category / name; from an
+  `image`, derive a candidate name from the filename + guess category. Returns
+  `{ product: { name, price, stock, category, description } }`.
+- `search/image`: derive a keyword from the image filename; reuse cheapest-first search;
+  if no keyword match, return top in-stock items as "visually similar".
+
+### Verification (additional)
+- Image search returns/render results (AC-09); extraction prefills the vendor form and a
+  reviewed save creates/updates the product (AC-13/14). `npm run build`+`lint` clean;
+  browser re-verification of the new flows.
+
+### Added risk
+- **R5 — Mock extraction is heuristic, not vision/NLP.** Behaviour is illustrative; real
+  accuracy depends on the backend. Isolated in `_mocks/` + service layer (swap later).
+- **R6 — Image input diverges from master `SPEC.md`** (no images there). Logged in
+  `architecture.md`; **human PR** required to reconcile `SPEC.md`.
+
+**STATUS: Phase 9 — APPROVED & IMPLEMENTED (browser-verified).**
+
+---
+
+## Plan delta — Phase 10: Voice input + chatbot media + voice delete (spec revision 2026-06-19b)
+
+Adds AC-09/11/13/14/15 voice input and AC-11 chatbot voice/image, per **D9–D11**. Scope
+stays within `frontend/` (+ append-only audit/log).
+
+### New / changed behavior
+- **Voice (D9):** reusable `useVoiceInput` (Web Speech API) + `VoiceButton`, added to
+  search, chatbot, and vendor extract. Voice→text into the existing text fields. Mic
+  hidden where unsupported.
+- **Chatbot (AC-11, D10):** ChatInput adds mic + image attach; image → `POST /api/chat`
+  (multipart) → reply + listings.
+- **Vendor delete (AC-15, D11):** a voice/text "delete by description" input on VendorPage
+  matches the vendor's product and opens the existing confirm modal.
+
+### Files to CREATE
+| Path | Purpose |
+| :-- | :-- |
+| `frontend/src/hooks/useVoiceInput.js` | Web Speech API wrapper: `{supported,listening,start,stop}` + `onResult` |
+| `frontend/src/components/common/VoiceButton.jsx` (+css) | mic toggle button; hidden when unsupported |
+
+### Files to MODIFY (within feature slice)
+| Path | Change |
+| :-- | :-- |
+| `frontend/src/pages/SearchPage.jsx` | VoiceButton → fills query + searches |
+| `frontend/src/components/chatbot/ChatInput.jsx` | mic + image attach; emit `{text,image}` |
+| `frontend/src/store/chatbotContext.jsx` | `sendMessage(text, image?)` |
+| `frontend/src/services/chatbotService.js` | `sendChat(message, sessionId, image?)` — multipart when image |
+| `frontend/src/services/_mocks/index.js` | chat handler FormData-aware (image → filename keyword) |
+| `frontend/src/components/products/ProductExtractPanel.jsx` | VoiceButton dictating into the prompt |
+| `frontend/src/pages/VendorPage.jsx` | voice/text "delete by description" → match → confirm modal |
+| `frontend/{API_INTEGRATION_GUIDE,COMPONENT_DOCUMENTATION,TEST_CASES,README}.md` | document voice/image/chat + AC tests |
+| `docs/architecture.md`, `specs/002-frontend/spec.md` | **already updated** (D9–D11) |
+
+### Verification
+- `npm run build`+`lint` clean. Browser (Edge/playwright): mic renders & is `supported`-gated;
+  chat **image attach** returns reply+listings; **typed** delete-by-description matches +
+  confirms (AC-15). **Actual speech recognition is verified manually** (needs a real mic;
+  not automatable headlessly) — noted, not skipped.
+
+### Added risk
+- **R7 — Web Speech API support/permissions vary** (Chrome/Edge good; Firefox none; Safari
+  partial). Mitigated by feature-detection + graceful hide; voice is an enhancement over the
+  always-present text input. Consistent with master SPEC's "voice→text later".
+
+**STATUS: Phase 10 AWAITING APPROVAL.** No `frontend/` implementation file will change
+until you approve this delta.
+
 ## Verification (mapped to Acceptance Criteria)
 
 - `npm run build` succeeds → **AC-20**; ESLint clean (incl. jsx-a11y) → **AC-18/19**.

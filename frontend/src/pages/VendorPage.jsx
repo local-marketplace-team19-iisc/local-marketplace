@@ -9,6 +9,8 @@ import { formatPrice, toErrorMessage } from '../utils/helpers'
 import Button from '../components/common/Button'
 import Loader from '../components/common/Loader'
 import Modal from '../components/common/Modal'
+import VoiceButton from '../components/common/VoiceButton'
+import ProductExtractPanel from '../components/products/ProductExtractPanel'
 
 const EMPTY_FORM = { name: '', price: '', stock: '', category: PRODUCT_CATEGORIES[0], description: '' }
 
@@ -26,6 +28,7 @@ function VendorPage() {
   const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteQuery, setDeleteQuery] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -60,6 +63,19 @@ function VendorPage() {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
   }
 
+  // Pre-fill from NLP/image extraction (AC-13/14, D6) — only overwrite fields the
+  // extractor actually returned; the vendor reviews and saves.
+  function applyExtracted(p) {
+    setForm((f) => ({
+      name: p.name ?? f.name,
+      price: p.price !== null && p.price !== undefined && p.price !== '' ? String(p.price) : f.price,
+      stock: p.stock !== null && p.stock !== undefined && p.stock !== '' ? String(p.stock) : f.stock,
+      category: p.category || f.category,
+      description: p.description ?? f.description,
+    }))
+    setFormErrors({})
+  }
+
   async function onSave(e) {
     e.preventDefault()
     const errs = validateProductForm(form)
@@ -91,10 +107,29 @@ function VendorPage() {
     try {
       await deleteProduct(target.id)
       setDeleteTarget(null)
+      setDeleteQuery('')
       await load()
     } catch (err) {
       setError(toErrorMessage(err))
       setDeleteTarget(null)
+    }
+  }
+
+  // Voice/NLP delete (AC-15, D11): match a spoken/typed description against the vendor's
+  // own products, then open the existing confirmation. Match is a keyword heuristic.
+  function findToDelete(term) {
+    const q = (term ?? deleteQuery).trim().toLowerCase()
+    if (!q) return
+    const match = products.find((p) => {
+      const name = p.name.toLowerCase()
+      if (q.includes(name)) return true
+      return name.split(/\W+/).filter((w) => w.length > 2).some((w) => q.includes(w))
+    })
+    if (match) {
+      setError(null)
+      setDeleteTarget(match)
+    } else {
+      setError(`No product matches “${term ?? deleteQuery}”.`)
     }
   }
 
@@ -103,6 +138,24 @@ function VendorPage() {
       <div className="vendor-head">
         <h1 className="page-title">Manage products</h1>
         <Button variant="primary" onClick={openAdd}>+ Add product</Button>
+      </div>
+
+      <div className="vendor-delete">
+        <label className="form-label" htmlFor="del-input">Delete by description (voice or text)</label>
+        <div className="vendor-delete__row">
+          <input
+            id="del-input"
+            className="form-input"
+            type="text"
+            placeholder="e.g. remove the milk"
+            value={deleteQuery}
+            onChange={(e) => setDeleteQuery(e.target.value)}
+          />
+          <VoiceButton onText={(t) => { setDeleteQuery(t); findToDelete(t) }} title="Speak the product to delete" />
+          <Button type="button" variant="danger" onClick={() => findToDelete()} disabled={!deleteQuery.trim()}>
+            Find &amp; delete
+          </Button>
+        </div>
       </div>
 
       {error ? <div className="form-banner form-banner--error" role="alert">{error}</div> : null}
@@ -140,6 +193,7 @@ function VendorPage() {
       {/* Add / edit form */}
       <Modal open={formOpen} title={editingId ? 'Edit product' : 'Add product'} onClose={() => setFormOpen(false)}>
         <form onSubmit={onSave} noValidate>
+          <ProductExtractPanel onExtracted={applyExtracted} />
           <div className="form-group">
             <label className="form-label" htmlFor="p-name">Name</label>
             <input className="form-input" id="p-name" name="name" value={form.name} onChange={updateField} aria-invalid={Boolean(formErrors.name)} aria-describedby={formErrors.name ? 'p-name-err' : undefined} />

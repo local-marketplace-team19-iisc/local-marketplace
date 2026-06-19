@@ -40,6 +40,8 @@ export const API_ROUTES = {
   products: '/api/products',
   product: (id) => `/api/products/${id}`,
   search: '/api/search',
+  searchImage: '/api/search/image',
+  extractProduct: '/api/extract/product',
   chat: '/api/chat',
   orders: '/api/orders',
 }

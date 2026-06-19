@@ -390,3 +390,153 @@ headless script exercising the end-to-end flows and capturing console/page error
 
 **Files altered:** added PNGs under `frontend/SCREENSHOTS/` (untracked). No source code
 changed during verification.
+
+---
+
+## Session 3 — 2026-06-19 (Spec revision: NLP & image input — Phase 9 planning)
+
+**Context / goal:** Feature owner revised `002-frontend-SPEC.md` AC-09/13/14/15 to require
+NLP-prompt and image-based input. Plan the frontend delta before implementing (P1).
+
+**Clarifications resolved (user):**
+- **D5** — build NLP-prompt + image-upload UI; **mock** extraction/search behind
+  `VITE_USE_MOCKS` (extends D3); real NLP/vision backend later.
+- **D6** — vendor add/update: extraction **pre-fills the form for review then save**
+  (keeps AC-05), not unattended "directly to inventory".
+- **D7** — AC-15 delete stays a normal button + confirm action.
+- **D8** — AC-09 search gains image upload → matched products, alongside text/NLP.
+
+**Decisions / notes:**
+- New assumed endpoints `POST /api/search/image` + `POST /api/extract/product`
+  (`multipart/form-data`); `apiClient` to gain FormData support; mock derives fields
+  heuristically (not real vision).
+- ⚠️ **Image input is beyond master `SPEC.md`** (text + voice→text later) — logged in
+  `architecture.md`, flagged for a human PR (P5; AI does not edit `SPEC.md`).
+
+**Files altered (planning/audit only, no implementation yet):** updated
+`specs/002-frontend/spec.md` (D5–D8, §5 AC's, §6 endpoints), `specs/002-frontend/plan.md`
+(Phase 9 delta), appended `docs/architecture.md`.
+
+**Approval state:** Phase 9 dry-run delta written; **awaiting user approval** before any
+`frontend/` implementation file is created/modified (P1).
+
+---
+
+## Session 3 — 2026-06-19 (Phase 9 implementation: NLP & image input)
+
+**Context / goal:** User approved the Phase 9 delta ("approve, implement Phase 9").
+Implement AC-09 image search + AC-13/14 NLP/image extraction (prefill→save); AC-15
+unchanged.
+
+**Work done (`frontend/`):**
+- `services/apiClient.js`: `FormData`/multipart support (skip JSON header; browser sets
+  boundary); mock branch passes FormData through.
+- `services/searchService.js`: `searchByImage(file)` → `POST /api/search/image`.
+- `services/extractService.js` (new): `extractProduct({prompt,image})` →
+  `POST /api/extract/product`.
+- `services/_mocks/index.js`: FormData-aware `readBody`; `searchImage` (filename keyword
+  → cheapest-first, fallback in-stock) and `extractProductFields` (heuristic
+  price/stock/category/name parse; refined name cleanup to strip units + category word).
+- `utils/constants.js`: `API_ROUTES.searchImage`, `API_ROUTES.extractProduct`.
+- `components/products/ProductExtractPanel.jsx` (+css, new): prompt + image control.
+- `pages/VendorPage.jsx`: embeds `ProductExtractPanel` in add/edit modal; `applyExtracted`
+  pre-fills only returned fields, vendor reviews + saves (D6).
+- `pages/SearchPage.jsx` (+`search.css`): image-upload row + `onImageSearch` (D8).
+- Docs updated: `API_INTEGRATION_GUIDE`, `COMPONENT_DOCUMENTATION`, `TEST_CASES`, `README`.
+
+**Verification (passed):**
+- `npm run lint` clean; `npm run build` ok (98 modules, ~3s, JS ~86 kB gzip).
+- **Browser (Edge via playwright-core), zero console/page errors:**
+  - Image search (`tomato.png`) → 7 result cards rendered (AC-09). → `ImageSearch.png`
+  - Vendor add via prompt "Amul butter 100g, ₹58, 30 in stock, Dairy" → form pre-filled
+    `name="Amul butter" price=58 stock=30 category=Dairy`; saved → row added (AC-13).
+    → `VendorExtract.png`
+
+**Findings / notes:**
+- Mock image search rarely keyword-matches a short filename, so it falls back to
+  "visually similar" (all in-stock, cheapest-first). Acceptable for a mock; real matching
+  is the backend's job (R5).
+- Mock extraction is heuristic; vendor always reviews before saving (D6) so imperfect
+  parses are corrected by a human.
+
+**Files altered:** new `extractService.js`, `ProductExtractPanel.jsx`(+css); modified
+`apiClient.js`, `searchService.js`, `_mocks/index.js`, `constants.js`, `VendorPage.jsx`,
+`SearchPage.jsx`, `search.css`, and 4 docs. New screenshots `ImageSearch.png`,
+`VendorExtract.png`. No other slice touched.
+
+**Approval state:** **Phase 9 complete and browser-verified.** Outstanding (human):
+(a) Docker image build on a host with a daemon; (b) PR to reconcile `SPEC.md` for React
+19 (R1) and image input (R6); (c) swap mock NLP/vision for the real backend when ready.
+
+---
+
+## Session 4 — 2026-06-19 (Spec revision 2: voice input — Phase 10 planning)
+
+**Context / goal:** Owner revised AC-09/11/13/14/15 again to add **voice** input, and
+AC-11 chatbot to accept voice/text/image. Plan the delta before implementing (P1).
+
+**Clarifications resolved (user):**
+- **D9** — voice via **browser Web Speech API** (voice→text; mic hidden where unsupported).
+  Aligns with master `SPEC.md` §2 ("voice→text later") — not a divergence.
+- **D10** — chatbot adds mic + image attach; image → `POST /api/chat` (multipart) → reply
+  + listings.
+- **D11** — AC-15 delete: voice/text prompt names the product → match → existing confirm
+  (supersedes D7).
+
+**Decisions / notes:** reusable `useVoiceInput` + `VoiceButton` across search/chat/vendor;
+chat gains multipart image; voice-delete matches client-side then confirms. Speech itself
+isn't headlessly automatable → verified manually; text-equivalent paths automatable (R7).
+
+**Files altered (planning/audit only):** `specs/002-frontend/spec.md` (D9–D11, §5/§6),
+`specs/002-frontend/plan.md` (Phase 10 delta), appended `docs/architecture.md`.
+
+**Approval state:** Phase 10 dry-run delta written; **awaiting user approval** before any
+`frontend/` implementation file is created/modified (P1).
+
+---
+
+## Session 4 — 2026-06-19 (Phase 10 implementation: voice + chatbot media + voice delete)
+
+**Context / goal:** User approved ("approve, implement Phase 10"). Implement voice input
+(AC-09/11/13/14), chatbot image (AC-11), and voice/NLP delete (AC-15).
+
+**Work done (`frontend/`):**
+- `hooks/useVoiceInput.js` (new): Web Speech API wrapper (`supported/listening/toggle` +
+  `onResult`); feature-detected, cleans up recognition on unmount.
+- `components/common/VoiceButton.jsx` (+css, new): mic toggle; renders null when
+  unsupported; pulse animation (reduced-motion aware).
+- `pages/SearchPage.jsx`: VoiceButton → sets query + searches (AC-09).
+- `components/chatbot/ChatInput.jsx`: rebuilt with mic + image attach + chip; emits
+  `onSend(text, image)` (AC-11).
+- `store/chatbotContext.jsx`: `sendMessage(text, image?)` (image shown as `📷 name`).
+- `services/chatbotService.js`: `sendChat(message, sessionId, image?)` — multipart on image.
+- `services/_mocks/index.js`: `chat()` FormData-aware; image → filename keyword + fallback.
+- `components/products/ProductExtractPanel.jsx`: VoiceButton dictates into the prompt.
+- `pages/VendorPage.jsx` (+`vendor.css`): "delete by description" input + mic →
+  `findToDelete` matches the vendor's product → existing confirm modal (AC-15, D11).
+- Docs updated: `API_INTEGRATION_GUIDE`, `COMPONENT_DOCUMENTATION`, `TEST_CASES`, `README`.
+
+**Verification:**
+- `npm run lint` clean; `npm run build` ok (101 modules, ~3.6s, JS ~87.5 kB gzip).
+- **Browser (Edge/playwright), zero console/page errors:**
+  - Voice mic **renders** on search, chat, and extract panel (Web Speech API detected).
+  - Chat **image** attach → user bubble `📷 tomato.png`, bot reply + 2 listings (AC-11).
+    → `ChatMedia.png`
+  - **Delete-by-description** typed "remove the milk" → matched "Full Cream Milk 1L" →
+    confirm → deleted (rows 2→1) (AC-15). → `VoiceDelete.png`
+- ⚠️ **Actual speech recognition NOT verified** — Web Speech API needs a real mic and
+  isn't automatable headlessly. The mic-renders + text-equivalent paths are verified;
+  live dictation needs a manual browser test (marked 🎙️ in TEST_CASES).
+
+**Findings / notes:** image keyword match worked here ("tomato.png" → Tomatoes); short
+filenames may otherwise fall back to "visually similar" (mock limitation, R5). Voice is an
+enhancement over the always-present text input (R7).
+
+**Files altered:** new `useVoiceInput.js`, `VoiceButton.jsx`(+css); modified `SearchPage`,
+`ChatInput`, `chatbotContext`, `chatbotService`, `_mocks/index.js`, `ProductExtractPanel`
+(+css), `VendorPage`(+`vendor.css`), and 4 docs. New screenshots `ChatMedia.png`,
+`VoiceDelete.png`. No other slice touched.
+
+**Approval state:** **Phase 10 complete; automatable paths browser-verified.** Outstanding
+(human): live mic/speech test; Docker image build (daemon); PR to reconcile `SPEC.md`
+(React 19 R1, image input R6); swap mock NLP/vision for the real backend.

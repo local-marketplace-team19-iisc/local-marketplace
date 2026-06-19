@@ -218,7 +218,7 @@ Protected routes require authentication.
 ## Product Search Requirements
 
 ### AC-09
-Customers can search products.
+Customers can search products by using simple NLP prompts (Both voice and text)and text or by using images NLP should extract products directly to inventory, so we may add required fields.
 
 ### AC-10
 Search results must display:
@@ -237,6 +237,7 @@ Availability
 
 ### AC-11
 Chatbot must display responses returned by API.
+Chatbot inputs are through Voice, text and Image.
 
 ### AC-12
 Conversation history must persist during session.
@@ -246,13 +247,13 @@ Conversation history must persist during session.
 ## Vendor Requirements
 
 ### AC-13
-Vendor can add products.
+Vendor can add products by using simple NLP prompts  (Both voice and text) and text or by using images NLP should extract products directly to inventory , so we may add required fields.
 
 ### AC-14
-Vendor can update products.
+Vendor can update products by using simple NLP prompts  (Both voice and text) and text or by using images NLP should extract products directly to inventory , so we may add required fields.
 
 ### AC-15
-Vendor can delete products.
+Vendor can delete products by using simple NLP prompts   (Both voice and text) and text or by using images NLP should extract products directly to inventory , so we may add required fields.
 
 ---
 

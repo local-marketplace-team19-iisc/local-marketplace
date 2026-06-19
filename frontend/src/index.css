@@ -85,6 +85,14 @@ img {
 /* Page section heading. */
 .page-title { margin: 24px 0 16px; }
 
+/* Small animated GIF icon used inside buttons/labels (voice/image affordances). */
+.icon-gif {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
 /* Visually-hidden helper for accessible labels (AC-19). */
 .visually-hidden {
   position: absolute;

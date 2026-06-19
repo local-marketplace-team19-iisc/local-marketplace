@@ -30,13 +30,14 @@ export function ChatbotProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [sessionId] = useState(() => uid('session'))
 
-  async function sendMessage(text) {
+  async function sendMessage(text, image) {
     const trimmed = (text || '').trim()
-    if (!trimmed) return
-    dispatch({ type: 'ADD_MESSAGE', message: { id: uid('msg'), sender: 'user', text: trimmed } })
+    if (!trimmed && !image) return
+    const shown = trimmed || (image ? `📷 ${image.name}` : '')
+    dispatch({ type: 'ADD_MESSAGE', message: { id: uid('msg'), sender: 'user', text: shown } })
     dispatch({ type: 'SENDING' })
     try {
-      const { reply, listings } = await chatbotService.sendChat(trimmed, sessionId)
+      const { reply, listings } = await chatbotService.sendChat(trimmed, sessionId, image)
       dispatch({
         type: 'ADD_MESSAGE',
         message: { id: uid('msg'), sender: 'bot', text: reply, listings: listings || [] },
