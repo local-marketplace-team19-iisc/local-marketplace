@@ -1,0 +1,84 @@
+.vendor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Inventory table (CSS grid; collapses to stacked cards on small screens). */
+.vendor-table {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.vendor-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.2fr 1.4fr;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.vendor-row:last-child { border-bottom: 0; }
+.vendor-row--head {
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.vendor-row__actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.vendor-delete {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 12px 0 18px;
+  box-shadow: var(--shadow);
+}
+.vendor-delete__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.vendor-delete__row .form-input { flex: 1; }
+@media (max-width: 480px) {
+  .vendor-delete__row { flex-wrap: wrap; }
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.stat-card__value { font-size: 1.6rem; font-weight: 700; color: var(--color-primary); }
+.stat-card__label { color: var(--color-muted); margin-top: 4px; }
+
+@media (max-width: 680px) {
+  .vendor-row--head { display: none; }
+  .vendor-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .vendor-row span[data-label]::before {
+    content: attr(data-label) ': ';
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+  .vendor-row__actions { justify-content: flex-start; }
+}

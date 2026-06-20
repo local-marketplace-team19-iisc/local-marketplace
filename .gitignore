@@ -22,6 +22,16 @@ __pycache__
 *.egg-info/
 .eggs/
 
+# Frontend-local ignores (keeps root .gitignore untouched — Constitution P6)
+node_modules/
+build/
+dist/
+.env
+*.local
+.eslintcache
+npm-debug.log*
+.git
+*.log
 # Feature 002 — Conversational agent
 # Pre-downloaded Whisper weights (large; documented as a fetch step in README)
 models/

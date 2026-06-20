@@ -31,6 +31,27 @@ Health: GET /health → 200 {"status":"ok"}
 - No secrets in source: `.env` is gitignored; commit only `.env.example` (placeholders).
 - Unambiguous specs: mark unknowns `[NEEDS CLARIFICATION]` — never guess.
 
+## Frontend (Feature 002)
+React 19 presentation layer (Vite) for the Local Marketplace. Presentation only — no
+business logic (C-04). REST integration (C-03), env-configurable (C-05).
+
+Stack & conventions
+- React 19 + Vite + react-router-dom. State = **React Context API** (`src/store/*Context.jsx`,
+  no Redux). Plain CSS + `index.css`. ESLint + jsx-a11y (AC-18/19).
+- Services in `frontend/src/services/` call REST via `apiClient.js`; **mock layer** in
+  `src/services/_mocks/` is toggled by `VITE_USE_MOCKS` (D3).
+- JWT in memory only — never browser storage (C-09).
+- Commit `frontend/.env.example` only; `frontend/.env` is gitignored (P4).
+
+Commands (run inside `frontend/`)
+- Install: `npm install`
+- Dev: `npm run dev`
+- Build: `npm run build` (AC-20)  ·  Lint: `npm run lint` (AC-18/19)
+
+Pointers
+- Contract & decisions: `specs/002-frontend/spec.md` · Dry-run & phases: `specs/002-frontend/plan.md`
+- Assumed API: `specs/002-frontend/spec.md` §6 and `frontend/FRONTEND_DOCUMENTATION.md` §4
+
 ## Overrides
 This file is committed and shared. Put machine-specific tweaks in `CLAUDE.local.md`
 (gitignored).
