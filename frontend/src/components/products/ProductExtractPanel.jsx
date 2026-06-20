@@ -4,6 +4,7 @@ import { extractProduct } from '../../services/extractService'
 import { toErrorMessage } from '../../utils/helpers'
 import Button from '../common/Button'
 import VoiceButton from '../common/VoiceButton'
+import imageGif from '../../assets/images/image.gif'
 
 // NLP-prompt + image extraction control for the vendor add/edit form (AC-13/14, D5/D6).
 // Calls onExtracted(productFields) so the parent can pre-fill the form for review.
@@ -51,7 +52,7 @@ function ProductExtractPanel({ onExtracted }) {
       </div>
       <div className="form-group">
         <label className="form-label" htmlFor="extract-image">
-          <img src="/image.gif" alt="" aria-hidden="true" className="icon-gif" /> …or upload a product image
+          <img src={imageGif} alt="" aria-hidden="true" className="icon-gif" /> …or upload a product image
         </label>
         <input
           id="extract-image"

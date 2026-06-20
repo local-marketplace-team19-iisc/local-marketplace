@@ -7,6 +7,7 @@ import Loader from '../components/common/Loader'
 import Button from '../components/common/Button'
 import VoiceButton from '../components/common/VoiceButton'
 import { toErrorMessage } from '../utils/helpers'
+import imageGif from '../assets/images/image.gif'
 
 // Customer product search (AC-09). Results show name/price/vendor/rating/availability
 // via ProductCard (AC-10) and arrive cheapest-first from the API.
@@ -89,7 +90,7 @@ function SearchPage() {
             onChange={(e) => setImage(e.target.files?.[0] || null)}
           />
           <Button type="button" variant="secondary" disabled={!image} loading={loading} onClick={onImageSearch}>
-            <img src="/image.gif" alt="" aria-hidden="true" className="icon-gif" /> Search by image
+            <img src={imageGif} alt="" aria-hidden="true" className="icon-gif" /> Search by image
           </Button>
         </div>
       </div>

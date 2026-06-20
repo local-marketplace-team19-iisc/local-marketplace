@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import './Navbar.css'
+import logo from '../../assets/images/logo.svg'
 import { useAuth } from '../../hooks/useAuth'
 import { useProducts } from '../../hooks/useProducts'
 import { ROLES } from '../../utils/constants'
@@ -28,7 +29,7 @@ function Navbar() {
     <header className="navbar">
       <div className="navbar__inner container">
         <NavLink to="/" className="navbar__brand" onClick={close}>
-          <img src="/logo.svg" alt="Local Marketplace" height="28" />
+          <img src={logo} alt="Local Marketplace" height="28" />
         </NavLink>
 
         <button

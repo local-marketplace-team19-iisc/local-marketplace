@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import Button from '../common/Button'
 import VoiceButton from '../common/VoiceButton'
+import imageGif from '../../assets/images/image.gif'
 
 // Chat composer with text, voice (→text), and image attachment (AC-11, D10).
 // Submits on Enter; clears text + image after send.
@@ -63,7 +64,7 @@ function ChatInput({ onSend, disabled }) {
           onChange={(e) => setImage(e.target.files?.[0] || null)}
         />
         <label htmlFor="chat-image" className="chat-input__attach" title="Attach image" aria-label="Attach image">
-          <img src="/image.gif" alt="" aria-hidden="true" className="chat-input__attach-icon" />
+          <img src={imageGif} alt="" aria-hidden="true" className="chat-input__attach-icon" />
         </label>
 
         <VoiceButton onText={appendVoice} title="Speak your message" disabled={disabled} />

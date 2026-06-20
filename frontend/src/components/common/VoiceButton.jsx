@@ -1,6 +1,7 @@
 import './VoiceButton.css'
 import { useVoiceInput } from '../../hooks/useVoiceInput'
 import { classNames } from '../../utils/helpers'
+import micGif from '../../assets/images/ai-microphone.gif'
 
 // Mic toggle that feeds transcribed text to `onText`. Renders nothing where the Web
 // Speech API is unsupported (graceful degradation — the text input always remains).
@@ -17,7 +18,7 @@ function VoiceButton({ onText, title = 'Speak', disabled = false }) {
       aria-label={listening ? 'Stop voice input' : title}
       title={listening ? 'Listening… click to stop' : title}
     >
-      <img src="/ai-microphone.gif" alt="" aria-hidden="true" className="voice-btn__icon" />
+      <img src={micGif} alt="" aria-hidden="true" className="voice-btn__icon" />
     </button>
   )
 }

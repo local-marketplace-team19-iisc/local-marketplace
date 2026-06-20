@@ -21,3 +21,14 @@ __pycache__
 # Environments and Build Artifacts
 *.egg-info/
 .eggs/
+
+# Frontend-local ignores (keeps root .gitignore untouched — Constitution P6)
+node_modules/
+build/
+dist/
+.env
+*.local
+.eslintcache
+npm-debug.log*
+.git
+*.log
