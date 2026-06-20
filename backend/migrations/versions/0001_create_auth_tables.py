@@ -67,10 +67,13 @@ def upgrade() -> None:
         sa.Column("code", sa.String(length=6), nullable=False),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("used", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("attempts", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("locked_until", sa.DateTime(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
     )
     op.create_index("ix_otps_user_id", "otps", ["user_id"])
     op.create_index("ix_otps_expires_at", "otps", ["expires_at"])
+    op.create_index("ix_otps_locked_until", "otps", ["locked_until"])
 
     op.create_table(
         "refresh_tokens",
@@ -93,6 +96,7 @@ def downgrade() -> None:
     op.drop_index("ix_refresh_tokens_user_id", table_name="refresh_tokens")
     op.drop_table("refresh_tokens")
 
+    op.drop_index("ix_otps_locked_until", table_name="otps")
     op.drop_index("ix_otps_expires_at", table_name="otps")
     op.drop_index("ix_otps_user_id", table_name="otps")
     op.drop_table("otps")

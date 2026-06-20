@@ -79,3 +79,48 @@ Each entry: context/goal · decisions + reasoning · edge cases / unknowns ·
     apart from the two new keys (Constitution P6).
 - **Verification:** YAML parses correctly (`yaml.safe_load`).
 - **Files altered:** `docker-compose.yml`.
+
+## 2026-06-20 — Session 4: Phase 2 — OTP service
+
+- **Context / goal:** Implement OTP generation, verification, expiry, and
+  lockout (FR-2, FR-3) in `backend/app/services/otp_service.py`, with tests
+  for happy path, expired OTP, wrong OTP, and lockout.
+- **Decisions:**
+  - The `otps` table (spec.md §4 / migration `0001`) had no columns to track
+    failed attempts or lockout state. Added `attempts` (Integer, default 0)
+    and `locked_until` (nullable DateTime) to `Otp` model, plus migration
+    `0002_add_otp_lockout_columns.py` (additive, depends on `0001`).
+  - Lockout is scoped per-OTP-row (not per-user/per-phone): 3 wrong attempts
+    on a given OTP sets `locked_until = now + 5min` on that row; a fresh OTP
+    (new row via `create_otp`) starts with `attempts=0`. Matches FR-3 as
+    written; revisit if cross-OTP/per-phone lockout is intended instead.
+  - `verify_otp(db, otp, code, now=...)` takes the `Otp` row + an optional
+    injectable `now` so tests don't need real sleeps/mocking of `datetime`.
+    Raises distinct exceptions: `OtpAlreadyUsedError`, `OtpLockedError`,
+    `OtpExpiredError`, `OtpInvalidError`.
+  - `generate_code()` uses `secrets.randbelow` (not `random`) for a
+    cryptographically secure 6-digit code.
+  - Tests (`backend/tests/test_otp_service.py`) use a `FakeSession` stub
+    (`add`/`commit`/`refresh` no-ops) instead of a real Postgres connection —
+    keeps Phase 2 unit tests DB-independent; integration tests against real
+    Postgres are deferred to when the `/auth/*` routes land.
+- **Verification:** 8 new tests pass; full suite 10/10 passes; `ruff check .`
+  clean.
+- **Files altered:** `backend/app/models/otp.py`,
+  `backend/migrations/versions/0002_add_otp_lockout_columns.py`,
+  `backend/app/services/__init__.py`, `backend/app/services/otp_service.py`,
+  `backend/tests/test_otp_service.py`.
+
+## 2026-06-20 — Session 5: index on otps.locked_until
+
+- **Context / goal:** User flagged that lockout-state queries on `otps` have
+  no supporting index. Migration `0002_add_otp_lockout_columns.py` already
+  added `attempts`/`locked_until` (from Session 4); it was just missing the
+  index.
+- **Decisions:** Added `ix_otps_locked_until` index in `0002`'s `upgrade()`
+  (dropped in `downgrade()`), and set `index=True` on `Otp.locked_until` in
+  the model to match.
+- **Verification:** migration compiles; `ruff check` clean; full suite
+  10/10 passes.
+- **Files altered:** `backend/app/models/otp.py`,
+  `backend/migrations/versions/0002_add_otp_lockout_columns.py`.
