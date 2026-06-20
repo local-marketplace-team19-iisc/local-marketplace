@@ -11,13 +11,32 @@ dependencies = [
     "fastapi==0.115.5",
     "uvicorn[standard]==0.32.1",
     "pydantic-settings==2.6.1",
+    "sqlalchemy==2.0.36",
+    "alembic==1.14.0",
+    "geoalchemy2==0.16.0",
+    "psycopg[binary]==3.2.10",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
     "httpx==0.28.1",
     "ruff==0.8.4",
+]
+# Feature 002 (conversational agent). Heavy native deps (faster-whisper,
+# pillow, pytesseract) live here so the `dev` extra stays light for users
+# who only care about feature 000.
+agent = [
+    "httpx==0.28.1",
+    "pydantic==2.10.4",
+    "pyyaml==6.0.2",
+    "python-dotenv==1.0.1",
+    "redis==5.2.1",
+    "eval_type_backport==0.2.0",
+    "faster-whisper==1.0.3",
+    "pillow==11.0.0",
+    "pytesseract==0.3.13",
 ]
 
 [tool.setuptools.packages.find]
@@ -26,7 +45,19 @@ include = ["backend*"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = [
+    ".venv",
+    "backend/agent/tests/fixtures",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["backend/tests"]
+testpaths = ["backend/tests", "backend/agent/tests"]
+asyncio_mode = "auto"
+# Default run excludes slow tests (need real Whisper weights / tesseract binary).
+# Opt in with `pytest -m slow` once `bash scripts/download_whisper_base_en.sh`
+# has been run and `tesseract` is on PATH.
+markers = [
+    "slow: real-model / heavy integration tests; opt-in via `pytest -m slow`.",
+]
+addopts = "-ra -m 'not slow'"

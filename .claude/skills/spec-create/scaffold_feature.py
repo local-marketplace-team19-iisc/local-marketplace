@@ -220,11 +220,11 @@ def main() -> int:
         if path.exists():
             skipped.append(name)
             continue
-        path.write_text(render(tmpl, slug=slug, title=title, num=num, today=today))
+        path.write_text(render(tmpl, slug=slug, title=title, num=num, today=today), encoding="utf-8")
         created.append(name)
 
     # P7: .active_feature is the single source of truth for the active feature.
-    (root / ".active_feature").write_text(slug + "\n")
+    (root / ".active_feature").write_text(slug + "\n", encoding="utf-8")
 
     print(f"Feature : {slug}  ({title})")
     print(f"Folder  : specs/{slug}/")

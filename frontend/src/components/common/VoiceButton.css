@@ -1,0 +1,35 @@
+.voice-btn {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.voice-btn__icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+}
+.voice-btn:hover:not(:disabled) { background: #f1f3f5; }
+.voice-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.4); }
+.voice-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.voice-btn--on {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  animation: voice-pulse 1s ease-in-out infinite;
+}
+@keyframes voice-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-btn--on { animation: none; }
+}
