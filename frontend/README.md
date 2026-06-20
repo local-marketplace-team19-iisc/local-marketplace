@@ -41,7 +41,7 @@ npm run lint     # ESLint (+ jsx-a11y)
 ## Mock mode & demo accounts
 
 With `VITE_USE_MOCKS=true` (default) the app runs entirely against an in-memory mock of
-the assumed REST contract (see `API_INTEGRATION_GUIDE.md`). Demo logins:
+the assumed REST contract (see `FRONTEND_DOCUMENTATION.md` §4). Demo logins:
 
 | Role | Email | Password |
 | :-- | :-- | :-- |
@@ -60,12 +60,12 @@ the assumed REST contract (see `API_INTEGRATION_GUIDE.md`). Demo logins:
 unsupported, e.g. Firefox) — aligns with the master spec's "voice→text". **Image/NLP** in
 mock mode are **heuristic, not real vision** (prompt parsing / image filename); they call
 `POST /api/search/image`, `POST /api/extract/product`, and `POST /api/chat` (multipart),
-wired to a real backend by flipping `VITE_USE_MOCKS`. See `API_INTEGRATION_GUIDE.md`.
+wired to a real backend by flipping `VITE_USE_MOCKS`. See `FRONTEND_DOCUMENTATION.md` §4.
 
 ## Switching to the real backend
 
 1. Set `VITE_USE_MOCKS=false` and `VITE_API_BASE_URL` to the backend URL.
-2. Ensure the backend implements the contract in `API_INTEGRATION_GUIDE.md` (or update
+2. Ensure the backend implements the contract in `FRONTEND_DOCUMENTATION.md` §4 (or update
    that doc + the service layer to match the published `openapi.json`).
 No UI/component changes are required — only the service layer is affected.
 
@@ -103,5 +103,5 @@ src/
 - **State management is Context API** (constraint C-02); the `store/` folder holds
   Context providers, not Redux slices.
 - **Build output is `build/`** (not Vite's default `dist/`) to match the spec.
-- See the other docs in this folder: `UI_DESIGN.md`, `COMPONENT_DOCUMENTATION.md`,
-  `ROUTING_DOCUMENTATION.md`, `API_INTEGRATION_GUIDE.md`, `TEST_CASES.md`.
+- See `FRONTEND_DOCUMENTATION.md` for UI design, components, routing, API integration,
+  and test cases (formerly five separate docs, now consolidated).

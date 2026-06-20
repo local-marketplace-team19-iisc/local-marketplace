@@ -1,6 +1,6 @@
 # Screenshots
 
-The spec (`002-frontend-SPEC.md` §5) lists screenshot deliverables. PNG screenshots are
+The spec (`specs/002-frontend/spec.md` §9) lists screenshot deliverables. PNG screenshots are
 binary artifacts captured from the **running** app, so they are produced manually rather
 than generated during the build.
 

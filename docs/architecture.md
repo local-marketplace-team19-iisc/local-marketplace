@@ -21,7 +21,7 @@ React presentation layer (`frontend/` slice). Decisions:
   currently exposes only `GET /health`; no `docs/api/openapi.json` exists. The frontend
   service layer is toggled by `VITE_USE_MOCKS` and points at `VITE_API_BASE_URL`. The
   assumed contract is documented in `specs/002-frontend/spec.md` §6 and
-  `frontend/API_INTEGRATION_GUIDE.md`. When the backend publishes real endpoints, flip
+  `frontend/FRONTEND_DOCUMENTATION.md` §4. When the backend publishes real endpoints, flip
   the toggle/base URL — no UI changes required.
 - **Build tooling — Vite** (React 19; CRA deprecated). Consequence: `index.html` lives
   at the `frontend/` root (Vite convention), deviating from the input spec's

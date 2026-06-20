@@ -8,7 +8,7 @@ let productSeq = 8
 let orderSeq = 0
 
 export const db = {
-  // Demo accounts (documented in API_INTEGRATION_GUIDE.md). Passwords are mock-only.
+  // Demo accounts (documented in FRONTEND_DOCUMENTATION.md §4). Passwords are mock-only.
   users: [
     { id: 'u1', name: 'Demo Customer', email: 'customer@demo.com', password: 'demo1234', role: ROLES.CUSTOMER },
     { id: 'u2', name: 'Demo Vendor', email: 'vendor@demo.com', password: 'demo1234', role: ROLES.VENDOR, vendorId: 'v1', vendor: "Demo Vendor's Store" },

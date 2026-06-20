@@ -1,10 +1,11 @@
 # Spec — Feature 002: Frontend (Architectural Contract)
 
-> Canonical contract for the frontend feature. Derived from the input
-> `002-frontend-SPEC.md` plus the decisions resolved with the user (D1–D4 below).
+> Canonical contract for the frontend feature. This file now **folds in the original
+> source brief** (formerly `002-frontend-SPEC.md`, v1.0, Owner: Frontend Team) plus the
+> decisions resolved with the user (D1–D11 below); the brief has been removed and this
+> is the single self-contained spec.
 > Authority order (conflicts resolve upward): `specs/constitution.md` → `SPEC.md` →
 > `docs/architecture.md`. This file is the feature's `spec.md` per Constitution P3.
-> The original input `002-frontend-SPEC.md` is retained unchanged as the source brief.
 
 ## 1. Goal
 
@@ -13,6 +14,18 @@ Marketplace, serving both **Customers** (conversational product search, results,
 cart/orders) and **Vendors** (onboarding, product management). The frontend holds
 **no business logic** (C-04); NLP, ranking, pricing, inventory, and storage stay in
 backend services. It integrates over **REST** (C-03) and is configurable via env (C-05).
+
+The frontend should:
+- Enable vendor onboarding and product management.
+- Provide a conversational product search experience.
+- Display AI-powered recommendations.
+- Support responsive design for mobile and desktop.
+- Integrate seamlessly with the FastAPI backend APIs.
+- Provide real-time user feedback.
+- Maintain accessibility and usability standards.
+
+The frontend acts only as a presentation layer while delegating business logic, NLP
+processing, recommendations, and data storage to backend services.
 
 ## 2. Resolved decisions
 
@@ -45,7 +58,7 @@ C-08 JWT auth · C-09 no sensitive data in browser storage · C-10 consume only 
   `sessionStorage`. Page refresh loses the session (documented limitation; production
   target is an httpOnly cookie issued by the backend).
 - **C-05/C-10:** `VITE_API_BASE_URL` + `VITE_USE_MOCKS`; the "documented API" is §6 here
-  and `frontend/API_INTEGRATION_GUIDE.md` until the backend publishes `openapi.json`.
+  and `frontend/FRONTEND_DOCUMENTATION.md` §4 until the backend publishes `openapi.json`.
 
 ## 4. Tooling & layout
 
@@ -54,14 +67,129 @@ C-08 JWT auth · C-09 no sensitive data in browser storage · C-10 consume only 
   static assets (`favicon.ico`, `logo.png`).
 - **Styling:** plain CSS + global `index.css` (no UI framework) for a lean, fast build.
 - **Routing:** `react-router-dom`; protected routes via a `ProtectedRoute` wrapper.
-- Folder structure follows the input spec §3 except the `index.html` location (above)
-  and `store/` file semantics (D2).
+- Folder structure follows the brief layout below except the `index.html` location
+  (above) and `store/` file semantics (D2).
+
+**Project layout (from the original brief):**
+
+```plaintext
+frontend/
+│
+├── public/
+│   ├── favicon.ico
+│   ├── logo.png
+│   └── index.html
+│
+├── src/
+│   ├── assets/
+│   │   ├── images/
+│   │   ├── icons/
+│   │   └── styles/
+│   │
+│   ├── components/
+│   │   ├── common/
+│   │   │   ├── Button.jsx
+│   │   │   ├── Loader.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   └── Navbar.jsx
+│   │   ├── chatbot/
+│   │   │   ├── ChatWindow.jsx
+│   │   │   ├── ChatInput.jsx
+│   │   │   └── MessageBubble.jsx
+│   │   └── products/
+│   │       ├── ProductCard.jsx
+│   │       ├── ProductList.jsx
+│   │       └── ProductDetails.jsx
+│   │
+│   ├── pages/
+│   │   ├── LoginPage.jsx
+│   │   ├── RegisterPage.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── SearchPage.jsx
+│   │   ├── ProductPage.jsx
+│   │   ├── VendorPage.jsx
+│   │   ├── FavoritesPage.jsx
+│   │   └── OrdersPage.jsx
+│   │
+│   ├── services/
+│   │   ├── authService.js
+│   │   ├── productService.js
+│   │   ├── chatbotService.js
+│   │   ├── searchService.js
+│   │   └── orderService.js
+│   │
+│   ├── hooks/
+│   │   ├── useAuth.js
+│   │   ├── useChat.js
+│   │   └── useProducts.js
+│   │
+│   ├── store/                 # Context providers/reducers, not Redux slices (D2)
+│   │   ├── authSlice.js
+│   │   ├── productSlice.js
+│   │   ├── chatbotSlice.js
+│   │   └── store.js
+│   │
+│   ├── routes/
+│   │   └── AppRoutes.jsx
+│   │
+│   ├── utils/
+│   │   ├── constants.js
+│   │   ├── validators.js
+│   │   └── helpers.js
+│   │
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── index.css
+│
+├── .env
+├── package.json
+├── Dockerfile
+└── README.md
+```
 
 ## 5. Acceptance criteria
 
-Inherits **AC-01 … AC-20** from `002-frontend-SPEC.md` §4 verbatim. Verification mapping
-lives in `plan.md` and `frontend/TEST_CASES.md`. Binary deliverables are substituted:
-`TEST_CASES.xlsx` → `TEST_CASES.md`; `SCREENSHOTS/*.png` captured manually post-build.
+Verification mapping lives in `plan.md` and `frontend/FRONTEND_DOCUMENTATION.md` §5. Binary deliverables
+are substituted: `TEST_CASES.xlsx` → `TEST_CASES.md`; `SCREENSHOTS/*.png` captured
+manually post-build.
+
+**Baseline AC-01 … AC-20 (from the original brief):**
+
+*UI requirements*
+- **AC-01** — All pages must render correctly.
+- **AC-02** — Responsive design must support 320px – 1920px.
+- **AC-03** — Loading indicators must be shown during API calls.
+- **AC-04** — Error messages must be user-friendly.
+- **AC-05** — All forms must include validation.
+
+*Authentication requirements*
+- **AC-06** — Users can register successfully.
+- **AC-07** — Users can login successfully.
+- **AC-08** — Protected routes require authentication.
+
+*Product search requirements*
+- **AC-09** — Customers can search products using simple NLP prompts (voice and text) or
+  by uploading images; NLP extracts product fields.
+- **AC-10** — Search results must display: Product Name, Price, Vendor, Rating, Availability.
+
+*Chatbot requirements*
+- **AC-11** — Chatbot must display responses returned by the API; inputs are voice, text,
+  and image.
+- **AC-12** — Conversation history must persist during the session.
+
+*Vendor requirements*
+- **AC-13** — Vendor can add products via NLP prompts (voice and text) or images.
+- **AC-14** — Vendor can update products via NLP prompts (voice and text) or images.
+- **AC-15** — Vendor can delete products via NLP prompts (voice and text) or images.
+
+*Performance requirements*
+- **AC-16** — Initial page load < 3 seconds.
+- **AC-17** — API response rendering < 1 second.
+
+*Quality requirements*
+- **AC-18** — No console errors.
+- **AC-19** — No critical accessibility issues.
+- **AC-20** — Frontend build passes successfully.
 
 **Updated AC's (spec revision 2026-06-19):**
 - **AC-09** — customers can search via NLP prompts (**voice and text**) **or by uploading
@@ -101,3 +229,35 @@ Base `${VITE_API_BASE_URL}` (default `http://localhost:8000`), JSON, Bearer JWT.
 
 Backend, DB, auth issuance, NLP/ranking, real order persistence, and any non-`frontend/`
 file (except the living `docs/architecture.md` log). Owned by other features (P6).
+
+## 9. Output files (from the original brief)
+
+```plaintext
+frontend/
+├── src/
+├── public/
+├── README.md
+├── UI_DESIGN.md
+├── COMPONENT_DOCUMENTATION.md
+├── ROUTING_DOCUMENTATION.md
+├── API_INTEGRATION_GUIDE.md
+├── TEST_CASES.xlsx        # substituted by TEST_CASES.md (see §5, D-clarification)
+├── SCREENSHOTS/           # captured manually post-build (Login, Dashboard, Search, Chatbot, VendorDashboard, …)
+├── Dockerfile
+├── package.json
+└── build/
+```
+
+## 10. Definition of Done (from the original brief)
+
+Frontend development is complete when:
+- All pages are implemented.
+- All APIs are integrated.
+- Authentication works.
+- Chatbot UI works.
+- Product search works.
+- Vendor dashboard works.
+- Responsive design verified.
+- Build succeeds.
+- No critical bugs.
+- Documentation completed.

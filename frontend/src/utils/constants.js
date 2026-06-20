@@ -32,7 +32,7 @@ export const PRODUCT_CATEGORIES = [
   'Stationery',
 ]
 
-// Assumed REST contract (spec.md §6 / API_INTEGRATION_GUIDE.md). Single source for paths.
+// Assumed REST contract (spec.md §6 / FRONTEND_DOCUMENTATION.md §4). Single source for paths.
 export const API_ROUTES = {
   register: '/api/auth/register',
   login: '/api/auth/login',
@@ -46,7 +46,7 @@ export const API_ROUTES = {
   orders: '/api/orders',
 }
 
-// Route paths used across the app (kept in one place for ROUTING_DOCUMENTATION.md).
+// Route paths used across the app (kept in one place; see FRONTEND_DOCUMENTATION.md §3).
 export const ROUTES = {
   home: '/',
   login: '/login',
