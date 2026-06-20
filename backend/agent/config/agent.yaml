@@ -1,0 +1,99 @@
+# Marketplace Agent — default configuration
+# Override at runtime: python -m agent.cli --override llm.planner.model=gpt-4o
+
+llm:
+  planner:
+    provider: "openai"             # "openai" | "vllm" | "anthropic"
+    model: "gpt-4o-mini"
+    temperature_tool: 0.0
+    temperature_chat: 0.3
+    max_output_tokens: 800
+    timeout_s: 20
+  fallback:
+    provider: "vllm"
+    model: "meta-llama/Llama-3-8B-Instruct"
+    endpoint: "http://vllm:8000/v1"
+  asr:
+    # faster-whisper engine (CTranslate2 backend). See agent/io/asr.py.
+    engine: "faster-whisper"
+    model: "base.en"               # tiny.en | base.en | small.en | medium.en | large-v3
+    # Optional: pre-downloaded model directory. If set + exists, used instead
+    # of `model` and faster-whisper runs fully offline (HF Hub never touched).
+    # Populate via: scripts/download_whisper_base_en.sh  (see README).
+    model_path: "models/faster-whisper-base.en"
+    device: "cpu"                  # "cpu" | "cuda" | "auto"
+    compute_type: "int8"           # int8 | int8_float16 | float16 | float32
+    beam_size: 5                   # 1 = greedy (fastest). 5 = beam search (better accuracy / confidence).
+    language_hint: "en"            # null = let Whisper detect
+    low_confidence_threshold: 0.6  # below this -> orchestrator asks user to retry
+    max_audio_bytes: 10485760      # 10 MB  (spec.md §2.2)
+    max_duration_seconds: 30       # spec.md §2.2
+  ocr:
+    # pytesseract engine. See agent/io/ocr.py.
+    engine: "tesseract"
+    lang: "eng"                    # tesseract lang code; "eng+kan" for English+Kannada
+    psm: 6                         # page segmentation mode (6 = uniform block of text)
+    oem: 3                         # OCR engine mode (3 = default LSTM)
+    min_chars: 3                   # below this -> raise OCRTooFewCharactersError
+    max_image_bytes: 5242880       # 5 MB   (spec.md §2.2)
+  embeddings:
+    model: "BAAI/bge-m3"
+    dim: 1024
+  reranker:
+    model: "BAAI/bge-reranker-base"
+    enabled: true
+
+session:
+  # "inmem" = process-local dict (no sidecar required — baseline default).
+  # "redis" = redis://... (production). Falls back to inmem at startup if
+  # the Redis ping fails, with a warning printed to stderr.
+  store: "inmem"
+  redis_url: "redis://localhost:6379/0"
+  ttl_seconds: 1800
+  max_turns_in_context: 10
+  summarize_after_turns: 20
+
+routing:
+  default_role: null
+  role_persistence: "session"
+  channels:
+    web:      { enabled: true,  streaming: true  }
+    whatsapp: { enabled: true,  streaming: false }
+    voice:    { enabled: true,  streaming: false }
+    mobile:   { enabled: true,  streaming: true  }
+
+retrieval:
+  vector_db: "qdrant"
+  qdrant_url: "http://localhost:6333"
+  collection_products: "products_v1"
+  top_k_lexical: 50
+  top_k_vector: 50
+  rrf_k: 60
+  rerank_top_k: 20
+  return_top_k: 5
+  radius_km_default: 5
+  radius_km_max: 25
+
+safety:
+  max_tool_calls_per_turn: 4
+  max_tools_chain_depth: 3
+  require_confirmation_for:
+    - "add_product"
+    - "update_product"
+    - "delete_product"
+    - "place_order"
+    - "cancel_order"
+  pii_redaction: true
+  rate_limit:
+    per_user_per_minute: 30
+    per_ip_per_minute: 60
+
+observability:
+  trace_dir: "./traces"
+  log_prompts: true
+  log_tool_io: true
+  otel_endpoint: null              # set to enable OTLP export
+
+server:
+  host: "0.0.0.0"
+  port: 8080
