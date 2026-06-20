@@ -32,3 +32,8 @@ dist/
 npm-debug.log*
 .git
 *.log
+# Feature 002 — Conversational agent
+# Pre-downloaded Whisper weights (large; documented as a fetch step in README)
+models/
+# Local trace / log directory
+traces/
