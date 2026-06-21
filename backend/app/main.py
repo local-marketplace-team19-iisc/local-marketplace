@@ -1,10 +1,8 @@
 from fastapi import FastAPI
 
-from backend.app.api.routes import health
+from backend.app.api.routes import auth, health
 from backend.app.core.config import settings
 
-# Auto-docs (/docs, /redoc, /openapi.json) disabled so that /health is the only
-# route — SPEC §7 "No route other than /health exists".
 app = FastAPI(
     title="Local Marketplace",
     docs_url=None,
@@ -13,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 
 def main() -> None:

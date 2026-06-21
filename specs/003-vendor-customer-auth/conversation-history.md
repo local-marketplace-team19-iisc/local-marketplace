@@ -7,7 +7,7 @@ Each entry: context/goal · decisions + reasoning · edge cases / unknowns ·
 
 ---
 
-## 2026-06-20 — Session 1: Feature scaffolding
+## 2026-06-21 — Session 1: Feature scaffolding
 
 - **Context / goal:** Initialise feature `003-vendor-customer-auth` via `/spec-create`.
 - **Decisions:** Created `specs/003-vendor-customer-auth/` with `spec.md`, `plan.md`, `prompts.md`,
@@ -16,111 +16,127 @@ Each entry: context/goal · decisions + reasoning · edge cases / unknowns ·
   to be resolved with the user before any implementation (P1, P2).
 - **Files altered:** new feature folder + `.active_feature`.
 
-## 2026-06-20 — Session 2: Phase 1 — SQLAlchemy models + Alembic migration
+---
 
-- **Context / goal:** User filled spec.md and plan.md (decisions: models in
-  `backend/app/models/`, SQLAlchemy + Alembic, vendors unique on
-  `(shop_name, shop_location)`, mock SMS, in-memory rate limiting, Docker
-  Postgres+PostGIS for dev/test). Asked to implement Phase 1 only: models +
-  migration, no routers/services yet.
-- **Decisions:**
-  - Added `backend/app/db/session.py` (engine, `SessionLocal`, `Base`) as the
-    declarative base required by the models — not explicitly listed in
-    plan.md's file table but a direct dependency of it (per SPEC §4 layout
-    `app/db/session.py`).
-  - Created `backend/app/models/{user,vendor,otp,refresh_token}.py` per
-    spec.md §4 schema, plus `models/__init__.py` re-exporting all four so
-    Alembic autogenerate/env.py sees full `Base.metadata`.
-  - `Vendor.shop_location` uses `geoalchemy2.Geometry(POINT, srid=4326)`;
-    composite `UniqueConstraint(shop_name, shop_location)` implements the
-    plan's duplicate-name decision.
-  - Added minimal Alembic scaffold (`alembic.ini`, `backend/migrations/env.py`,
-    `script.py.mako`) since a runnable migration requires it — not itemized in
-    plan.md's table but necessary to fulfill "Alembic migration file" ask.
-  - `backend/migrations/versions/0001_create_auth_tables.py` creates the
-    `postgis` extension, the `user_role` enum, and all 4 tables with the
-    indexes/constraints from spec.md §4.
-  - Appended `sqlalchemy`, `alembic`, `geoalchemy2` to `pyproject.toml`
-    dependencies (idempotent append, Constitution P6).
-- **Unknowns resolved:** driver choice — plan.md's file table assumed
-  `psycopg2-binary`, but it has no prebuilt wheel for the local Python 3.14
-  and failed to build from source. Switched to `psycopg[binary]==3.2.10`
-  (psycopg3) and updated `DATABASE_URL` scheme to `postgresql+psycopg://` in
-  `backend/app/core/config.py` and `.env.example`.
-- **Verification:** `ruff check` clean on new files; models import and
-  register on `Base.metadata` (`users`, `vendors`, `otps`, `refresh_tokens`);
-  migration files compile; full `pytest` suite still passes (2 passed).
-- **Files altered:** `pyproject.toml`, `.env.example`,
-  `backend/app/core/config.py`, `backend/app/db/__init__.py`,
-  `backend/app/db/session.py`, `backend/app/models/__init__.py`,
-  `backend/app/models/user.py`, `backend/app/models/vendor.py`,
-  `backend/app/models/otp.py`, `backend/app/models/refresh_token.py`,
-  `alembic.ini`, `backend/migrations/env.py`, `backend/migrations/script.py.mako`,
-  `backend/migrations/versions/0001_create_auth_tables.py`.
+## 2026-06-21 — Session 2: Spec & plan refinement
 
-## 2026-06-20 — Session 3: docker-compose PostGIS service
+- **Context / goal:** Address 5 critical gaps: /me endpoint, signup flow (one vs two endpoints), vendor shop details timing, register rate limiting, refresh token rotation.
+- **Decisions resolved:**
+  - **GET /api/auth/me:** Added endpoint (FR-11) for frontend to fetch current user context (email, user_type, vendor_id/shop details if vendor).
+  - **Two signup endpoints (FR-12):** POST `/auth/register` (customer) vs POST `/auth/register-vendor` (vendor + shop). Cleaner frontend logic, no role ambiguity.
+  - **Shop details at signup (FR-13):** Vendors enter location (lat/lon) during registration, not post-onboarding. Simpler flow; can be edited later.
+  - **Register rate limiting (FR-9b):** Max 10 registrations per IP per hour (in addition to login rate limiting).
+  - **Refresh token rotation (FR-14, mandatory):** On each `/auth/refresh`, issue new refresh token + invalidate old one. Reduces exposure if token leaks.
+- **Architectural changes:**
+  - Added test file `backend/tests/test_auth_me.py`.
+  - Updated `backend/app/routers/auth.py` to include GET /me handler.
+  - Clarified location validation (±90 lat, ±180 lon) in plan.
+  - Added R4 risk (refresh token storage race on network drop) + grace-period mitigation.
+- **Unknowns remaining:** None; all `[NEEDS CLARIFICATION]` resolved (P2).
+- **Files altered:** spec.md, plan.md, conversation-history.md.
 
-- **Context / goal:** `docker-compose.yml` (owned by feature 000-app-scaffold)
-  had no DB service, so Phase 1's `DATABASE_URL` had nothing to connect to in
-  Docker. User asked to add a Postgres+PostGIS service, persistent volume,
-  port 5432, and a healthcheck gating backend startup.
-- **Decisions:**
-  - Used `postgis/postgis:16-3.4-alpine` (Postgres 16 + PostGIS 3.4 on
-    Alpine) rather than plain `postgres:16-alpine`, since the latter has no
-    PostGIS extension available — needed for `Vendor.shop_location`.
-  - `db` service: `POSTGRES_DB=local_marketplace`, user/password `postgres`
-    (matches `.env.example`); named volume `pgdata` for persistence; port
-    `5432:5432` exposed; `pg_isready` healthcheck (5s interval/timeout, 5
-    retries).
-  - `backend` service: added `DATABASE_URL` pointing at `db:5432` (Docker
-    network hostname, not `localhost`) and `depends_on: db: condition:
-    service_healthy` so backend waits for the DB healthcheck.
-  - Edit was additive only — existing `backend` service config untouched
-    apart from the two new keys (Constitution P6).
-- **Verification:** YAML parses correctly (`yaml.safe_load`).
-- **Files altered:** `docker-compose.yml`.
+---
 
-## 2026-06-20 — Session 4: Phase 2 — OTP service
+## 2026-06-21 — Session 3: Phase 1 & 2 Implementation
 
-- **Context / goal:** Implement OTP generation, verification, expiry, and
-  lockout (FR-2, FR-3) in `backend/app/services/otp_service.py`, with tests
-  for happy path, expired OTP, wrong OTP, and lockout.
-- **Decisions:**
-  - The `otps` table (spec.md §4 / migration `0001`) had no columns to track
-    failed attempts or lockout state. Added `attempts` (Integer, default 0)
-    and `locked_until` (nullable DateTime) to `Otp` model, plus migration
-    `0002_add_otp_lockout_columns.py` (additive, depends on `0001`).
-  - Lockout is scoped per-OTP-row (not per-user/per-phone): 3 wrong attempts
-    on a given OTP sets `locked_until = now + 5min` on that row; a fresh OTP
-    (new row via `create_otp`) starts with `attempts=0`. Matches FR-3 as
-    written; revisit if cross-OTP/per-phone lockout is intended instead.
-  - `verify_otp(db, otp, code, now=...)` takes the `Otp` row + an optional
-    injectable `now` so tests don't need real sleeps/mocking of `datetime`.
-    Raises distinct exceptions: `OtpAlreadyUsedError`, `OtpLockedError`,
-    `OtpExpiredError`, `OtpInvalidError`.
-  - `generate_code()` uses `secrets.randbelow` (not `random`) for a
-    cryptographically secure 6-digit code.
-  - Tests (`backend/tests/test_otp_service.py`) use a `FakeSession` stub
-    (`add`/`commit`/`refresh` no-ops) instead of a real Postgres connection —
-    keeps Phase 2 unit tests DB-independent; integration tests against real
-    Postgres are deferred to when the `/auth/*` routes land.
-- **Verification:** 8 new tests pass; full suite 10/10 passes; `ruff check .`
-  clean.
-- **Files altered:** `backend/app/models/otp.py`,
-  `backend/migrations/versions/0002_add_otp_lockout_columns.py`,
-  `backend/app/services/__init__.py`, `backend/app/services/otp_service.py`,
-  `backend/tests/test_otp_service.py`.
+**Phase 1: Database & Models (Complete)**
+- Created migration `0003_add_email_password_auth.py` adding email, password_hash to users table
+- Updated User, Vendor, RefreshToken models with email/password and location fields
+- Models are pure SQLAlchemy (no business logic)
 
-## 2026-06-20 — Session 5: index on otps.locked_until
+**Phase 2: Core Services (Complete)**
+- Password service: bcrypt hashing, strength validation (min 8 chars, uppercase, digit, special char)
+- JWT service: HS256 tokens, access (1h) + refresh (7d) with expiry validation
+- Auth service: register_customer, register_vendor, login, refresh_access_token, logout, get_current_user
+- Rate limiting service: in-memory counters for login (5 attempts/15 min) and signup (10/hour/IP)
+- Comprehensive unit tests (test_password.py, test_jwt_service.py, test_rate_limit.py, test_auth_service.py)
+- Dependencies added to pyproject.toml: python-jose, passlib, shapely, email-validator
 
-- **Context / goal:** User flagged that lockout-state queries on `otps` have
-  no supporting index. Migration `0002_add_otp_lockout_columns.py` already
-  added `attempts`/`locked_until` (from Session 4); it was just missing the
-  index.
-- **Decisions:** Added `ix_otps_locked_until` index in `0002`'s `upgrade()`
-  (dropped in `downgrade()`), and set `index=True` on `Otp.locked_until` in
-  the model to match.
-- **Verification:** migration compiles; `ruff check` clean; full suite
-  10/10 passes.
-- **Files altered:** `backend/app/models/otp.py`,
-  `backend/migrations/versions/0002_add_otp_lockout_columns.py`.
+**Phase 3: API Routes & Integration (Complete)**
+- Pydantic schemas: RegisterRequest, RegisterVendorRequest, LoginRequest, RefreshRequest, AuthResponse, UserMeResponse
+- FastAPI router with 6 endpoints:
+  - POST `/register` → customer registration + JWT issuance
+  - POST `/register-vendor` → vendor registration + shop location + JWT issuance
+  - POST `/login` → authenticate, return access + refresh tokens
+  - POST `/refresh` → rotate tokens (old refresh revoked)
+  - POST `/logout` → revoke refresh token (idempotent)
+  - GET `/me` → fetch current user (requires JWT in Authorization header)
+- Rate limiting integrated: 429 on limit exceeded
+- Location validation: ±90 lat, ±180 lon
+- Password validation integrated: 400 on weak password
+- Router wired into main.py at prefix=/api/auth
+- .env.example updated with JWT_* and RATE_LIMIT_* placeholders
+
+**Decisions:**
+- Email validation via pydantic EmailStr
+- Location in JSON request as {lat, lon}, stored as PostGIS POINT
+- Token rotation on refresh: old refresh token immediately invalidated in DB
+- Rate limits: separate counters per email (login) and per IP (signup)
+- GET /me requires JWT in Authorization: Bearer <token> header
+
+**Unknowns remaining:** None.
+- **Files altered:** All Phase 1/2/3 files created; Phase 3: auth.py router, schemas/auth.py, main.py updated, pyproject.toml + .env.example updated.
+
+---
+
+## 2026-06-21 — Session 4: Phase 4 Comprehensive Testing
+
+**Phase 4: Integration Tests (Complete)**
+- test_auth_register.py: 13 tests
+  - Happy path: customer + vendor registration
+  - Validation: password strength, email format, mismatched passwords
+  - Duplicate email rejection
+  - Invalid location validation (lat ±90, lon ±180)
+  - Rate limiting (10 signups/IP/hour)
+  
+- test_auth_login.py: 12 tests
+  - Happy path: customer + vendor login
+  - Invalid credentials (wrong password, nonexistent email)
+  - Generic error message (no user enumeration)
+  - Rate limiting (5 failures/email/15 min)
+  - Counter cleared on successful login
+  - Token structure validation (JWT format, different tokens)
+  
+- test_auth_refresh.py: 10 tests
+  - Happy path: token refresh returns new tokens
+  - Token rotation: old refresh token immediately revoked
+  - Invalid token rejection (malformed, wrong type, empty)
+  - Using access token as refresh token → 401
+  - Multiple refreshes in sequence
+  - Token claims preservation (user_id, user_type)
+  
+- test_auth_logout.py: 8 tests
+  - Happy path: 204 response
+  - Token revocation: refresh fails after logout
+  - Idempotent: logout twice returns 204
+  - Invalid token still succeeds (idempotency)
+  - Multiple tokens: logout only revokes one
+  - Complete flow: register → login → logout
+  
+- test_auth_me.py: 11 tests
+  - Happy path: customer + vendor /me
+  - Authorization header validation (missing, wrong prefix, invalid JWT)
+  - Token type validation (refresh token rejected)
+  - Customer vs vendor field differences
+  - Consistent data across multiple requests
+  - Refreshed token works for /me
+  - Vendor details (location, description)
+
+**Documentation:**
+- docs/architecture.md: Added Feature 003 section with:
+  - Complete auth flow diagram (ASCII)
+  - 20 key architectural decisions (D12-D31)
+  - Database schema
+  - API contract table
+  - Error handling matrix
+  - Security measures & risk mitigations
+  - Testing summary
+
+**Test Coverage:**
+- 54 total integration tests
+- Covers: happy path, validation, rate limiting, token rotation, authorization, edge cases
+- Uses FastAPI TestClient for end-to-end testing
+- Fixtures: customer/vendor registration, login responses, access tokens
+
+**Unknowns remaining:** None. All spec requirements covered.
+- **Files altered:** test_auth_register.py, test_auth_login.py, test_auth_refresh.py, test_auth_logout.py, test_auth_me.py created; docs/architecture.md appended with Feature 003 decisions.

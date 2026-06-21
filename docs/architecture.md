@@ -71,3 +71,99 @@ AC-09/11/13/14/15 revised again to add voice input; AC-11 chatbot to accept voic
   automation, so speech itself is verified manually; the text-equivalent paths (typed
   prompt, image attach, typed delete prompt) and the mic's supported/disabled gating are
   automatable.
+
+---
+
+## Feature 003 — Vendor & Customer Email/Password Authentication (2026-06-21)
+
+Email/password authentication with JWT tokens. Customers and vendors register separately;
+vendors provide shop location at signup. Tokens stored in memory (no localStorage).
+
+### Key Decisions
+
+- **D12 — Two signup endpoints (not role selector):** `POST /auth/register` (customer-only)
+  and `POST /auth/register-vendor` (vendor + shop). Avoids role-selection UI confusion in
+  frontend; each endpoint explicitly expects the right payload (shop_name/location for
+  vendor). Aligns with C-12 (customer/vendor distinct flows).
+
+- **D13 — Shop location at registration, not post-onboarding:** Vendors enter location
+  (lat/lon) during signup as a required field. Simpler flow; location can be updated later
+  via PATCH (future). Enables geospatial indexing in Phase 004.
+
+- **D14 — JWT token rotation on refresh:** Each call to `POST /auth/refresh` issues a
+  new refresh token and immediately revokes the old one in the DB. Reduces exposure if a
+  token leaks; client must update in-memory token. Mandatory (not optional) for security.
+
+- **D15 — Rate limiting (in-memory Phase 2):** Login: 5 failed per email per 15 min → 429.
+  Signup: 10 per IP per hour → 429. In-memory counters (adequate for single-instance);
+  upgrade to Redis (Phase 2b) for multi-instance deployments.
+
+- **D16 — Token storage (adheres to C-09):** Access tokens (1h) and refresh tokens (7d)
+  stored in memory only; frontend never writes to localStorage/sessionStorage. On page
+  refresh, frontend calls `GET /auth/me` to restore user context (requires valid in-memory
+  token, or user must re-login). Production: deploy with httpOnly refresh cookies (future
+  Phase 3b, if needed).
+
+- **D17 — Generic login error:** Both wrong password and nonexistent email return 401 with
+  identical "Invalid credentials" message. Prevents user enumeration attacks (C-08).
+
+- **D18 — Two user tables (users + vendors):** Not a single polymorphic table. Users table
+  holds email, password, role enum. Vendors table: user_id FK (1:1), shop fields, PostGIS
+  location. Cleaner schema; JOIN on queries is negligible at this scale.
+
+- **D19 — PostGIS for location:** Shop location stored as POINT(lon, lat) with SRID 4326
+  (WGS84). Enables geo-queries and spatial indexing (Phase 004+). Validation: ±90 lat,
+  ±180 lon at registration. Client sends {lat, lon}; backend converts to (lon, lat) for
+  PostGIS (standard order).
+
+- **D20 — Refresh token hash in DB:** Refresh token JWT is hashed (SHA256) before storage.
+  Reduces exposure if DB is leaked; actual JWT never stored plaintext. On refresh call,
+  client sends the full JWT; backend hashes it and looks up the record.
+
+### API Contracts
+
+6 endpoints under `/api/auth/`:
+
+- `POST /register` → Customer signup (email, password, password_confirm)
+  - Response: 201, {access_token, refresh_token, user_id, user_type="customer"}
+  - Errors: 400 (validation/duplicate), 429 (rate limit)
+
+- `POST /register-vendor` → Vendor signup (email, password, shop_name, location {lat,lon}, description?)
+  - Response: 201, {access_token, refresh_token, user_id, vendor_id, user_type="vendor", shop_name}
+  - Errors: 400 (validation/duplicate/invalid location), 429 (rate limit)
+
+- `POST /login` → Authenticate (email, password)
+  - Response: 200, {access_token, refresh_token, user_id, user_type}
+  - Errors: 401 (invalid creds), 429 (rate limit)
+
+- `POST /refresh` → Rotate tokens (refresh_token)
+  - Response: 200, {access_token, refresh_token, user_id, user_type}
+  - Errors: 401 (invalid/expired/revoked)
+  - Side effect: old refresh_token marked revoked in DB
+
+- `POST /logout` → Revoke refresh token (refresh_token)
+  - Response: 204 (no content)
+  - Idempotent: 204 even if token already revoked
+  - Side effect: refresh_token.revoked_at = now()
+
+- `GET /me` → Current user profile (requires `Authorization: Bearer <access_token>`)
+  - Response: 200, {id, email, user_type, vendor_id?, shop_name?, shop_description?, shop_location?}
+  - Errors: 401 (missing/invalid JWT)
+  - Vendor fields only included if user_type="vendor"
+
+### Database Changes
+
+Migration `0003_add_email_password_auth.py`:
+- users: +email (UNIQUE, indexed), +password_hash
+- vendors: +shop_description, +is_active
+- refresh_tokens: revoked → revoked_at (DATETIME, nullable, indexed)
+
+### Testing
+
+Integration tests cover all endpoints:
+- Happy path: register/login/refresh/logout/me
+- Validation: weak password, invalid email, duplicate email, invalid location
+- Rate limiting: 429 on limit exceeded, clear on successful login
+- Token rotation: old token rejected after refresh
+- Auth errors: 401 on invalid/expired/missing tokens
+- Edge cases: idempotent logout, refresh with wrong token, /me with refresh token (rejected)
