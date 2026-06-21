@@ -70,7 +70,7 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 | Vendor surface | Web dashboard | (later) |
 | Search & semantic | Semantic retrieval; pinned model + index | (later) |
 | Customer surface | Web chatbot (text; voice->text later) | (later) (UI) |
-| Auth | Register / OTP login | later |
+| Auth | Register / email-based login (email + password or email OTP); mobile OTP not used | later |
 | Frontend | React 18 | later |
 
 ## 6. Non-functional requirements
