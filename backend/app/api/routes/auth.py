@@ -31,12 +31,12 @@ def get_client_ip(request: Request) -> str:
     return "unknown"
 
 
-@router.post("/register", status_code=201, response_model=AuthResponse)
+@router.post("/register", status_code=201)
 def register_customer(
     request_data: RegisterRequest,
     request: Request,
     db: Session = Depends(get_db),
-) -> AuthResponse:
+):
     """Register a new customer.
 
     Validation:
@@ -45,18 +45,18 @@ def register_customer(
     - Passwords must match
     - Rate limited: 10 signups per IP per hour
     """
-    # Validate passwords match
-    if request_data.password != request_data.password_confirm:
-        raise HTTPException(status_code=400, detail="Passwords do not match")
-
-    # Check signup rate limit
-    client_ip = get_client_ip(request)
-    allowed, reason = rate_limit.check_signup_rate_limit(client_ip)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=reason)
-
-    # Register customer
     try:
+        # Validate passwords match (if password_confirm is provided)
+        if request_data.password_confirm and request_data.password != request_data.password_confirm:
+            raise HTTPException(status_code=400, detail="Passwords do not match")
+
+        # Check signup rate limit
+        client_ip = get_client_ip(request)
+        allowed, reason = rate_limit.check_signup_rate_limit(client_ip)
+        if not allowed:
+            raise HTTPException(status_code=429, detail=reason)
+
+        # Register customer
         result = auth_service.register_customer(db, request_data.email, request_data.password)
         rate_limit.record_signup(client_ip)
 
@@ -68,6 +68,10 @@ def register_customer(
         )
     except auth_service.AuthValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}") from e
 
 
 @router.post("/register-vendor", status_code=201, response_model=AuthResponse)
@@ -129,11 +133,11 @@ def register_vendor(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.post("/login", status_code=200, response_model=AuthResponse)
+@router.post("/login", status_code=200)
 def login(
     request_data: LoginRequest,
     db: Session = Depends(get_db),
-) -> AuthResponse:
+):
     """Authenticate user with email and password.
 
     Returns:
@@ -147,14 +151,18 @@ def login(
     try:
         result = auth_service.login(db, request_data.email, request_data.password)
 
-        return AuthResponse(
-            access_token=result["access_token"],
-            refresh_token=result["refresh_token"],
-            user_id=result["user_id"],
-            user_type=result["user_type"],
-        )
+        return {
+            "access_token": result["access_token"],
+            "refresh_token": result["refresh_token"],
+            "user_id": result["user_id"],
+            "user_type": result["user_type"],
+        }
     except auth_service.AuthUnauthorizedError as e:
         raise HTTPException(status_code=401, detail=str(e)) from e
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}") from e
 
 
 @router.post("/refresh", status_code=200, response_model=AuthResponse)

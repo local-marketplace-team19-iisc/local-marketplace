@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     PORT: int = 8000
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/local_marketplace"
+    DATABASE_URL: str = "sqlite:///./local_marketplace.db"
 
     # JWT settings
     JWT_SECRET: str = "your-secret-key-change-in-production"

@@ -1,8 +1,6 @@
 import uuid
 from datetime import datetime
 
-from geoalchemy2.shape import from_shape
-from shapely.geometry import Point
 from sqlalchemy.orm import Session
 
 from backend.app.models.refresh_token import RefreshToken
@@ -62,14 +60,14 @@ def register_customer(db: Session, email: str, password: str) -> dict:
     user = User(
         email=email.lower(),
         password_hash=hash_password(password),
-        role=UserRole.customer,
+        role=UserRole.customer.value,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
     # Generate tokens
-    access_token = create_access_token(user.id, user.role.value)
+    access_token = create_access_token(user.id, user.role)
     refresh_token = create_refresh_token(user.id)
     token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
 
@@ -85,7 +83,7 @@ def register_customer(db: Session, email: str, password: str) -> dict:
     return {
         "user_id": str(user.id),
         "email": user.email,
-        "user_type": user.role.value,
+        "user_type": user.role,
         "access_token": access_token,
         "refresh_token": refresh_token,
     }
@@ -140,19 +138,16 @@ def register_vendor(
         user = User(
             email=email.lower(),
             password_hash=hash_password(password),
-            role=UserRole.vendor,
+            role=UserRole.vendor.value,
         )
         db.add(user)
         db.flush()  # Get user.id without committing
 
-        # Create PostGIS POINT from coordinates
-        point = Point(lon, lat)  # PostGIS uses (longitude, latitude)
-        geom = from_shape(point, srid=4326)
-
         vendor = Vendor(
             user_id=user.id,
             shop_name=shop_name,
-            shop_location=geom,
+            shop_location_lat=lat,
+            shop_location_lon=lon,
             shop_description=shop_description,
             is_active=True,
         )
@@ -166,7 +161,7 @@ def register_vendor(
         raise AuthValidationError(f"Failed to create vendor account: {str(e)}") from e
 
     # Generate tokens
-    access_token = create_access_token(user.id, user.role.value)
+    access_token = create_access_token(user.id, user.role)
     refresh_token = create_refresh_token(user.id)
     token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
 
@@ -183,7 +178,7 @@ def register_vendor(
         "user_id": str(user.id),
         "vendor_id": str(vendor.id),
         "email": user.email,
-        "user_type": user.role.value,
+        "user_type": user.role,
         "shop_name": vendor.shop_name,
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -221,7 +216,7 @@ def login(db: Session, email: str, password: str) -> dict:
     clear_failed_login(email)
 
     # Generate tokens
-    access_token = create_access_token(user.id, user.role.value)
+    access_token = create_access_token(user.id, user.role)
     refresh_token = create_refresh_token(user.id)
 
     # Store refresh token hash in DB
@@ -241,7 +236,7 @@ def login(db: Session, email: str, password: str) -> dict:
 
     return {
         "user_id": str(user.id),
-        "user_type": user.role.value,
+        "user_type": user.role,
         "access_token": access_token,
         "refresh_token": refresh_token,
     }
@@ -315,7 +310,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> dict:
 
     return {
         "user_id": str(user.id),
-        "user_type": user.role.value,
+        "user_type": user.role,
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
     }
@@ -378,19 +373,19 @@ def get_current_user(db: Session, access_token: str) -> dict:
     result = {
         "id": str(user.id),
         "email": user.email,
-        "user_type": user.role.value,
+        "user_type": user.role,
     }
 
     # Add vendor details if vendor
-    if user.role == UserRole.vendor:
+    if user.role == UserRole.vendor.value:
         vendor = db.query(Vendor).filter(Vendor.user_id == user_id).first()
         if vendor:
-            # Extract coordinates from PostGIS geometry
-            # vendor.shop_location is a Geometry object
             result["vendor_id"] = str(vendor.id)
             result["shop_name"] = vendor.shop_name
             result["shop_description"] = vendor.shop_description
-            # For now, return location as-is (can be parsed by client)
-            result["shop_location"] = vendor.shop_location
+            result["shop_location"] = {
+                "lat": vendor.shop_location_lat,
+                "lon": vendor.shop_location_lon,
+            }
 
     return result

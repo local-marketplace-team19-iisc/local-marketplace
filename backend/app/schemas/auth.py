@@ -8,7 +8,12 @@ class RegisterRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(..., min_length=8)
-    password_confirm: str
+    password_confirm: Optional[str] = None
+    full_name: Optional[str] = None
+    account_type: Optional[str] = None
+
+    class Config:
+        extra = "allow"
 
 
 class RegisterVendorRequest(BaseModel):
@@ -21,7 +26,7 @@ class RegisterVendorRequest(BaseModel):
     location: dict = Field(
         ...,
         description="Coordinates as {lat, lon}",
-        example={"lat": 40.7128, "lon": -74.0060},
+        json_schema_extra={"example": {"lat": 40.7128, "lon": -74.0060}},
     )
     shop_description: Optional[str] = Field(None, max_length=1000)
 

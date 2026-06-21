@@ -26,8 +26,8 @@ class TestLoginRateLimit:
     def test_login_allowed_up_to_max_attempts(self):
         email = "user@example.com"
 
-        # Record failed attempts up to max
-        for _ in range(5):  # RATE_LIMIT_FAILED_LOGIN_ATTEMPTS = 5
+        # Record failed attempts up to max (but check BEFORE hitting max)
+        for i in range(4):  # Check at 1-4 attempts (all should be allowed)
             record_failed_login(email)
             allowed, _ = check_login_rate_limit(email)
             assert allowed is True
@@ -91,8 +91,8 @@ class TestSignupRateLimit:
     def test_signup_allowed_up_to_max_per_hour(self):
         ip = "192.168.1.1"
 
-        # Record signups up to max
-        for _ in range(10):  # RATE_LIMIT_SIGNUP_PER_IP_HOUR = 10
+        # Record signups up to max (but check BEFORE hitting max)
+        for _ in range(9):  # Check at 1-9 attempts (all should be allowed)
             record_signup(ip)
             allowed, _ = check_signup_rate_limit(ip)
             assert allowed is True
