@@ -7,32 +7,22 @@
 
 This document maps out the sequential, idempotent steps required to provision the local PostgreSQL environment, implement the code-first SQLAlchemy models, and establish the Alembic migration timeline.
 
-## Milestone 1: Local Infrastructure Provisioning
-- [ ] Create a local `.env` file containing explicit, un-hardcoded Postgres environment variables.
-- [ ] Create `backend/db/Dockerfile` — a custom DB image that layers pgvector onto the official PostGIS image, avoiding fragile third-party combined images:
-  ```dockerfile
-  FROM postgis/postgis:16-3.4
-  RUN apt-get update \
-      && apt-get install -y --no-install-recommends postgresql-16-pgvector \
-      && rm -rf /var/lib/apt/lists/*
-  ```
-- [ ] Update `docker-compose.yml` to build from this Dockerfile (`build: { context: ., dockerfile: backend/db/Dockerfile }`) rather than pulling a pre-built image, and expose port 5432.
-- [ ] Create `backend/db/init/01-extensions.sql` with the two idempotent extension installation statements:
-  ```sql
-  CREATE EXTENSION IF NOT EXISTS vector;
-  CREATE EXTENSION IF NOT EXISTS postgis;
-  ```
-- [ ] Update `docker-compose.yml` to mount `backend/db/init/01-extensions.sql` into the PostgreSQL container's automated bootstrapping directory (`/docker-entrypoint-initdb.d/`), so extensions are installed on first container startup before the application connects.
-- [ ] Spin up the containerized layer via `docker compose up -d` and verify port 5432 availability.
-- [ ] Verify both extensions are active inside the running container: `docker compose exec db psql -U $POSTGRES_USER -d $POSTGRES_DB -c "\dx"` — confirm both `vector` and `postgis` appear in the output. If either is absent (stale volume from a prior run without the init SQL), destroy the volume (`docker compose down -v`) and re-run `docker compose up -d`.
+## Milestone 1: Local Infrastructure Provisioning ✅ COMPLETE
+> **Runtime note:** `docker compose` is not available; the container runtime on this machine is **Podman 5.5+**. All `docker compose` references below map to equivalent `podman` commands (see `make docker-build` / `make docker-up`). Image pulls require `env -u HTTP_PROXY -u HTTPS_PROXY` to bypass an unreachable corporate proxy; build RUN steps pass `--build-arg http_proxy=...` to use the proxy for apt/pip inside the container.
+
+- [x] Create a local `.env` file containing explicit, un-hardcoded Postgres environment variables.
+- [x] Create `backend/db/Dockerfile` — a custom DB image that layers pgvector onto the official PostGIS image (`FROM --platform=linux/amd64 postgis/postgis:16-3.4`).
+- [x] Update `docker-compose.yml` to build from this Dockerfile and expose port 5432.
+- [x] Create `backend/db/init/01-extensions.sql` with idempotent `CREATE EXTENSION IF NOT EXISTS vector/postgis`.
+- [x] Update `docker-compose.yml` to mount init SQL into `/docker-entrypoint-initdb.d/`.
+- [x] Spin up DB container via `make docker-up` (`podman run -d --name marketplace-db ...`) and verify port 5432.
+- [x] Verify extensions: `podman exec marketplace-db psql -U marketplace -d marketplace -c "\dx"` confirmed `postgis 3.4.3` and `vector 0.8.3` active.
 
 ## Milestone 2: Code-First Schema Architecture
-- [ ] Update `pyproject.toml` with all packages required for this feature and run `make install` (or `pip install -e ".[dev]"`):
-  - **Runtime deps:** `sqlalchemy[asyncio]>=2.0`, `asyncpg>=0.29`, `alembic>=1.13`, `pgvector>=0.2.0`, `geoalchemy2>=0.14`.
-  - **Dev deps:** `pytest-asyncio>=0.23`.
-  - **Pytest config:** add `asyncio_mode = "auto"` under `[tool.pytest.ini_options]` so async test functions are recognised — omitting this causes async tests to silently pass without executing their body.
-  Run `make install` before any subsequent step that invokes `alembic` or imports SQLAlchemy models.
-- [ ] Run `alembic init backend/db/migrations` from the project root. This creates the scaffold (`env.py`, `script.py.mako`, `versions/`) directly in `backend/db/migrations/` and sets `script_location = backend/db/migrations` in `alembic.ini` automatically — no manual `alembic.ini` path edit is required.
+> **Migration path note:** A prior migration chain at `backend/migrations/` (revisions 0001-0003) covers auth tables from features 002/003. The 001-db-schema feature creates a **separate** Alembic chain at `backend/db/migrations/` for the 9 marketplace entities — `alembic.ini`'s `script_location` is updated to `backend/db/migrations/`.
+
+- [x] Update `pyproject.toml` with all packages (`sqlalchemy[asyncio]`, `asyncpg`, `alembic`, `pgvector`, `geoalchemy2`, `pytest-asyncio`) and `asyncio_mode = "auto"`.
+- [ ] Run `alembic init backend/db/migrations` from the project root. Creates scaffold and sets `script_location = backend/db/migrations` in `alembic.ini`.
 - [ ] Create the `backend/app/models/` package with three files:
   - `backend/app/models/base.py` — declares the SQLAlchemy `DeclarativeBase` metadata class.
   - `backend/app/models/models.py` — implements all 9 production table entity classes using SQLAlchemy 2.0 `Mapped` / `mapped_column` syntax.
