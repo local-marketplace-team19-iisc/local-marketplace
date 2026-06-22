@@ -1,0 +1,15 @@
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.product-list__empty {
+  color: var(--color-muted);
+  padding: 24px 0;
+  text-align: center;
+}
+@media (max-width: 380px) {
+  .product-list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" role="img" aria-label="Local Marketplace logo">
+  <rect x="0" y="6" width="36" height="36" rx="9" fill="#2563eb"/>
+  <path d="M8 20h20l-2 12a2.5 2.5 0 0 1-2.5 2.1H12.5A2.5 2.5 0 0 1 10 32L8 20z" fill="#fff"/>
+  <text x="48" y="31" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#1a1d21">Local Marketplace</text>
+</svg>
