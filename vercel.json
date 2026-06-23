@@ -1,7 +1,7 @@
 {
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/build",
-  "installCommand": "echo skip",
+  "installCommand": "pip install -r requirements.txt",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index.py" }
   ]
