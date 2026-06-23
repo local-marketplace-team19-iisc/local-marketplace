@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.app.agent_router.api import router as agent_route_router
 from backend.app.agent_router.chat_adapter import router as agent_chat_router
 from backend.app.agent_router.search_adapter import router as agent_search_router
-from backend.app.api.routes import auth, catalog, health, orders, products
+from backend.app.api.routes import auth, catalog, health, orders, products, vendor_orders
 from backend.app.core.config import settings
 from backend.app.db.session import Base, SessionLocal, engine
 from backend.app.models.category import Category
@@ -137,6 +137,10 @@ app.include_router(catalog.router, prefix="/api/catalog", tags=["catalog"])
 # an all-or-nothing multi-vendor order and decrements stock in the same
 # transaction. Vendor-side order view is deferred (see backend/app/api/routes/orders.py).
 app.include_router(orders.router, tags=["orders"])
+# /api/vendor/orders — V1 vendor-scoped order history. Each vendor sees
+# only the line items they fulfilled, even when the customer placed a
+# single multi-vendor order. Read-only (status transitions deferred).
+app.include_router(vendor_orders.router, tags=["vendor-orders"])
 
 # Feature 008 — SBERT lightweight agent router. Three surfaces, one routing core.
 # All three call into 006's `product_service` for the actual product CRUD.
@@ -154,11 +158,22 @@ if os.path.exists(_spa_dir):
 
 @app.exception_handler(StarletteHTTPException)
 async def spa_fallback(request: Request, exc: StarletteHTTPException) -> Response:
-    # For non-API 404s, serve the SPA so React Router handles the path.
-    if exc.status_code == 404 and not request.url.path.startswith("/api/") and os.path.exists(_spa_index):
+    # SPA fallback: when a non-API URL 404s, serve the SPA shell so React
+    # Router can resolve the path client-side.
+    if (
+        exc.status_code == 404
+        and not request.url.path.startswith("/api/")
+        and os.path.exists(_spa_index)
+    ):
         return FileResponse(_spa_index)
-    # Otherwise preserve the original HTTP error. Re-raising here escapes the
-    # handler and surfaces as a 500, so return the response explicitly instead.
+
+    # For every other HTTPException (401/403/409/422/etc.), preserve the
+    # original status and `detail` payload. Earlier versions of this
+    # handler used `raise exc` here, which Starlette interpreted as the
+    # handler itself crashing — auth routes that cleanly raised 401 were
+    # being logged as 500s with stack traces. Returning the response
+    # explicitly is the documented way to forward an HTTPException out of
+    # a custom handler.
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 

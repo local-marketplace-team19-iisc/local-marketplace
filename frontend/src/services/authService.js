@@ -19,16 +19,16 @@ function toAuthState(data) {
 
 export function register(payload) {
   const isVendor = payload.role === ROLES.VENDOR
+  // V1 vendor registration omits `location` — see RegisterPage.jsx and
+  // RegisterVendorRequest in backend/app/schemas/auth.py. The backend
+  // treats a missing `location` as `(0, 0)` so we don't have to send a
+  // placeholder from here.
   const body = isVendor
     ? {
         email: payload.email,
         password: payload.password,
         password_confirm: payload.password_confirm,
         shop_name: payload.shop_name || payload.name,
-        location: {
-          lat: Number(payload.location_lat),
-          lon: Number(payload.location_lon),
-        },
         shop_description: payload.shop_description || '',
       }
     : {

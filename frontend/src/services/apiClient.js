@@ -14,6 +14,17 @@ export function getAuthToken() {
   return authToken
 }
 
+// Mid-session 401 handler. AuthProvider registers a callback at mount; when
+// the backend rejects a request with 401 *and* we currently believe we have
+// an authenticated session (i.e. authToken is set), we invoke the handler
+// once so the auth context can wipe sessionStorage and send the user to
+// /login. We deliberately keep this module framework-agnostic (no
+// react-router import here) — the handler is responsible for navigation.
+let onUnauthorized = null
+export function registerUnauthorizedHandler(fn) {
+  onUnauthorized = typeof fn === 'function' ? fn : null
+}
+
 /**
  * @param {string} method  HTTP verb
  * @param {string} path    e.g. '/api/products'
@@ -70,6 +81,20 @@ export async function apiRequest(method, path, { body, params } = {}) {
     } else {
       message = `Request failed (${res.status}).`
     }
+
+    // Mid-session expiry handling. Only fire when we previously believed we
+    // had a session (authToken is set) — otherwise a 401 from a public page
+    // attempting an opportunistic call would log the user out before they'd
+    // even logged in. The handler is responsible for wiping session state
+    // and navigating; we still throw so the caller's catch path runs.
+    if (res.status === 401 && authToken && onUnauthorized) {
+      try {
+        onUnauthorized({ path, message })
+      } catch {
+        /* never let an interceptor failure mask the original error */
+      }
+    }
+
     throw new ApiError(message, res.status, data)
   }
   return data

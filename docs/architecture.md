@@ -380,6 +380,25 @@ Decisions added by later sessions that belong to feature 004:
   product readers accept both `{products: [...]}` (new 006/008 shape)
   and `{results: [...]}` (legacy mock shape) without if/else trees in
   components.
+
+- **D-007-1 — Vendor-scoped order history** A customer's
+  checkout produces a single `Order` row that may span multiple vendors
+  (SPEC §3 — "one unique order number"). For the vendor view we partition
+  the same order: each vendor reads `GET /api/vendor/orders` and sees
+  only its own line items, its own subtotal, the customer's id + email,
+  and a *count* of other vendors on the order (never their names — a
+  vendor does not learn the competitive set from this view). Scope is
+  V1-minimal: read-only, no status transitions (Order.status stays
+  "placed" until a future slice). Snapshots on `OrderItem`
+  (`product_name_snapshot`, `brand_snapshot`, `vendor_name_snapshot`,
+  `unit_price_inr`) mean a vendor's history is stable even if the
+  underlying product is later edited or deleted. Implementation lives
+  alongside the customer-side order code in
+  `backend/app/services/order_service.py`
+  (`list_orders_for_vendor`, `project_orders_for_vendor`) and a thin
+  route at `backend/app/api/routes/vendor_orders.py`. Frontend mounts a
+  new "Orders" tab on the Vendor dashboard backed by
+  `frontend/src/services/vendorOrderService.js`.
 - **D-004-17 — Per-identity provider isolation.** `ProductProvider`
   and `ChatbotProvider` now sit inside a keyed subtree rooted on
   `user?.id ?? 'guest'`. When the signed-in user changes (logout,

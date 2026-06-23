@@ -17,15 +17,25 @@ class RegisterRequest(BaseModel):
 
 
 class RegisterVendorRequest(BaseModel):
-    """Vendor registration request."""
+    """Vendor registration request.
+
+    `location` is optional in V1 — the registration form no longer asks the
+    vendor for lat/lon coordinates because we don't yet ship a
+    location-based search or distance feature for customers. The backend
+    persists a placeholder `(0, 0)` when the field is omitted, leaving the
+    underlying NOT-NULL `shop_location_lat`/`shop_location_lon` columns
+    intact (no migration required). If we add a real "find vendors near
+    me" feature later, we'll re-introduce a proper geocoding step rather
+    than asking users to type raw coordinates.
+    """
 
     email: EmailStr
     password: str = Field(..., min_length=8)
     password_confirm: str
     shop_name: str = Field(..., min_length=1, max_length=255)
-    location: dict = Field(
-        ...,
-        description="Coordinates as {lat, lon}",
+    location: Optional[dict] = Field(
+        None,
+        description="Optional shop coordinates as {lat, lon}",
         json_schema_extra={"example": {"lat": 40.7128, "lon": -74.0060}},
     )
     shop_description: Optional[str] = Field(None, max_length=1000)

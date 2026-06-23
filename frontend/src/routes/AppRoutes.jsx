@@ -27,7 +27,11 @@ function AppRoutes() {
 
       {/* Authenticated */}
       <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
-      <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+      {/* /orders is the customer cart + history page. Vendors hit the
+          "Orders" tab on /vendor instead (different endpoint, different
+          shape). Role-gating here prevents a vendor who clicks an old
+          link from triggering a /api/orders 403 storm. */}
+      <Route path="/orders" element={<ProtectedRoute role={ROLES.CUSTOMER}><OrdersPage /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute role={ROLES.VENDOR}><Dashboard /></ProtectedRoute>} />
 
       {/* Vendor-only */}

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import './vendor.css'
 import '../assets/styles/forms.css'
 import { useAuth } from '../hooks/useAuth'
@@ -19,6 +20,7 @@ import Loader from '../components/common/Loader'
 import Modal from '../components/common/Modal'
 import VoiceButton from '../components/common/VoiceButton'
 import ProductExtractPanel from '../components/products/ProductExtractPanel'
+import VendorOrdersTab from '../components/vendor/VendorOrdersTab'
 
 const EMPTY_FORM = { name: '', price: '', stock: '', category: PRODUCT_CATEGORIES[0], description: '' }
 
@@ -26,6 +28,26 @@ const EMPTY_FORM = { name: '', price: '', stock: '', category: PRODUCT_CATEGORIE
 // (AC-13/14/15). Route is vendor-gated by ProtectedRoute.
 function VendorPage() {
   const { user } = useAuth()
+  // Tab state is mirrored to the URL (`?tab=products|orders`) so the navbar
+  // entries deep-link correctly and a browser back/forward feels natural.
+  // We default to "products" for an unknown / missing value to keep the
+  // dashboard's first impression unchanged.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = searchParams.get('tab') === 'orders' ? 'orders' : 'products'
+  const [activeTab, setActiveTab] = useState(tabFromUrl)
+
+  // Keep the in-component state in sync when the URL changes (e.g. user
+  // clicks a different navbar entry while already on this page).
+  useEffect(() => {
+    setActiveTab(tabFromUrl)
+  }, [tabFromUrl])
+
+  function switchTab(next) {
+    setActiveTab(next)
+    if (next === 'orders') setSearchParams({ tab: 'orders' })
+    else setSearchParams({})
+  }
+
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -169,6 +191,31 @@ function VendorPage() {
 
   return (
     <div className="container">
+      <div className="vendor-tabs" role="tablist" aria-label="Vendor sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'products'}
+          className={`vendor-tab${activeTab === 'products' ? ' vendor-tab--active' : ''}`}
+          onClick={() => switchTab('products')}
+        >
+          Products
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'orders'}
+          className={`vendor-tab${activeTab === 'orders' ? ' vendor-tab--active' : ''}`}
+          onClick={() => switchTab('orders')}
+        >
+          Orders
+        </button>
+      </div>
+
+      {activeTab === 'orders' ? <VendorOrdersTab /> : null}
+
+      {activeTab === 'products' ? (
+        <>
       <div className="vendor-head">
         <h1 className="page-title">Manage products</h1>
         <Button variant="primary" onClick={openAdd}>+ Add product</Button>
@@ -277,6 +324,8 @@ function VendorPage() {
       >
         <p>Delete <strong>{deleteTarget?.name}</strong>? This cannot be undone.</p>
       </Modal>
+        </>
+      ) : null}
     </div>
   )
 }
