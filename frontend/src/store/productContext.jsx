@@ -107,7 +107,7 @@ export function ProductProvider({ children }) {
     run(() => orderService.listOrders(), (d) => dispatch({ type: 'SET_ORDERS', orders: d.orders || [] }))
 
   const placeOrder = () => {
-    const items = state.cart.map((c) => ({ productId: c.product.id, vendorId: c.product.vendorId, qty: c.qty }))
+    const items = state.cart.map((c) => ({ productId: c.product.id, qty: c.qty }))
     return run(
       () => orderService.placeOrder(items),
       (d) => {

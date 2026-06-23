@@ -38,8 +38,14 @@ export function uid(prefix = 'id') {
 }
 
 // Normalize any thrown value into a user-friendly message (AC-04).
+// Belt-and-braces: never returns `[object Object]`. If a message landed as
+// an object (e.g. legacy `Error(detailObj)` upstream), pick its `.message`
+// field if present, otherwise fall back rather than coercing to `[object Object]`.
 export function toErrorMessage(err, fallback = 'Something went wrong. Please try again.') {
   if (!err) return fallback
   if (typeof err === 'string') return err
-  return err.message || fallback
+  const msg = err.message
+  if (typeof msg === 'string' && msg.length > 0) return msg
+  if (msg && typeof msg === 'object' && typeof msg.message === 'string') return msg.message
+  return fallback
 }
