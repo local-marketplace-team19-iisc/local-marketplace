@@ -4,6 +4,10 @@ uvicorn[standard]==0.32.1
 pydantic==2.10.4
 pydantic-settings==2.6.1
 email-validator==2.2.0
+# Required by FastAPI for the multipart Form/File params in the agent chat
+# adapter. FastAPI validates this at route-registration (import) time, so a
+# missing python-multipart crashes the serverless function on cold start.
+python-multipart==0.0.32
 
 # ── Database (Supabase / PostgreSQL) ─────────────────────────────────────────
 sqlalchemy==2.0.36
