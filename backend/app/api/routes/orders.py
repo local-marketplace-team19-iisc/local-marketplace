@@ -1,50 +1,99 @@
-"""`/api/orders` — V1 placeholder stub.
+"""`/api/orders` — V1 customer order placement + history.
 
-The frontend (feature 004) wires Order history + checkout to `/api/orders`,
-but Orders are NOT in V1 scope (no spec, no service, no model, no
-migration). The unimplemented route was returning 404 on every page load,
-flooding the dev console with errors.
+Replaces the earlier placeholder stub. V1 scope (per user decision,
+2026-06-23):
+  * Customer can place an order from their cart (all-or-nothing).
+  * Stock is decremented in the same transaction.
+  * `GET /api/orders` returns the customer's own orders, newest-first.
+  * No status transitions, vendor-side view, cancellation, or payment.
+  * Customers only. Vendors and anonymous callers get 403/401.
 
-This stub keeps the UI quiet by:
-  * `GET /api/orders` → 200 with `{ "orders": [] }`. Auth-gated so we
-    don't expose anything by accident; just signals "you have no orders".
-  * `POST /api/orders` → 501 Not Implemented with a friendly body so
-    a checkout attempt fails *loudly* instead of silently 404-ing.
-
-Replace this with a real Orders feature when 009/010 lands. The stub is
-explicitly logged in `docs/architecture.md` so it doesn't become a
-permanent fixture by accident.
+The route layer is intentionally thin: it auth-gates, validates the role,
+delegates to `order_service`, and maps typed service errors to HTTP codes.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, status
+from typing import Any
+
+from fastapi import APIRouter, Body, HTTPException, Request, status
 
 from backend.app.agent_router._auth import require_principal
+from backend.app.db.session import SessionLocal
+from backend.app.services import order_service
 
 router = APIRouter()
 
 
-@router.get("/api/orders")
-def list_orders(request: Request) -> dict[str, list]:
-    """Return an empty order list for the authenticated principal.
+def _require_customer(request: Request) -> str:
+    """Resolve the principal and require the customer role.
 
-    Auth-gated so the stub mirrors the documented contract in
-    FRONTEND_DOCUMENTATION.md §`/api/orders` (🔒). A 401 is therefore
-    expected for anonymous calls — keeps the surface honest until a
-    real Orders feature lands.
+    Returns the customer's user-id (used as `customer_id` on the Order).
+    Vendors hit 403 — they have their own dashboard for incoming orders
+    (deferred until the vendor-side feature lands).
     """
-    require_principal(request)
-    return {"orders": []}
+    principal = require_principal(request)
+    role = principal.get("user_type") or "unknown"
+    if role != "customer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only customers can place or view their own orders.",
+        )
+    customer_id = principal.get("id")
+    if not customer_id:
+        # require_principal returns a populated dict; this is just defensive
+        # so a mis-configured auth backend can't silently break ownership.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not resolve the authenticated customer.",
+        )
+    return customer_id
 
 
-@router.post("/api/orders")
-def place_order(request: Request) -> None:
-    require_principal(request)
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail=(
-            "Order placement is not yet implemented in V1. "
-            "This endpoint is a placeholder; see feature 008 spec §9."
-        ),
-    )
+@router.get("/api/orders")
+def list_orders(request: Request) -> dict[str, list[dict[str, Any]]]:
+    """Return this customer's orders, newest-first."""
+    customer_id = _require_customer(request)
+    db = SessionLocal()
+    try:
+        rows = order_service.list_orders_for_customer(db, customer_id=customer_id)
+        return {"orders": [order_service.project_order(o) for o in rows]}
+    finally:
+        db.close()
+
+
+@router.post("/api/orders", status_code=status.HTTP_201_CREATED)
+def place_order(
+    request: Request,
+    payload: dict[str, Any] = Body(...),
+) -> dict[str, Any]:
+    """Place a multi-vendor order. Returns the persisted order envelope.
+
+    Request shape (camelCase, matches the existing frontend service):
+        { "items": [ { "productId": "...", "qty": 1 }, ... ] }
+
+    A legacy `vendorId` field on each item is silently ignored — the
+    authoritative vendor is read from the product row.
+    """
+    customer_id = _require_customer(request)
+    items = payload.get("items")
+
+    db = SessionLocal()
+    try:
+        try:
+            order = order_service.place_order(
+                db, customer_id=customer_id, items=items
+            )
+        except order_service.OrderValidationError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        except order_service.OrderNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+        except order_service.OrderOutOfStockError as e:
+            raise HTTPException(
+                status_code=409,
+                detail={"message": str(e), "lines": e.lines},
+            ) from e
+
+        return {"order": order_service.project_order(order)}
+    finally:
+        db.close()

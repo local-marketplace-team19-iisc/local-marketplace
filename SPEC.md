@@ -53,6 +53,7 @@ single request path a customer or vendor follows today.
     │  │   auth      (Feature 003)                          │     │
     │  │   catalog   (Feature 005)                          │     │
     │  │   products  (Feature 006)                          │     │
+    │  │   orders    (Feature 007 — place / list)           │     │
     │  └─────────────────────┬──────────────────────────────┘     │
     │                        ▼                                    │
     │            SQLAlchemy ORM  (Feature 001 schema)             │
@@ -123,6 +124,7 @@ slice to its spec folder; the slice spec is the authoritative contract.
 | 004 | `004-frontend` | React 19 SPA — customer chatbot, vendor dashboard, search bar; text + voice→text input | Shipped |
 | 005 | `005-catalog` | Category / sub-category taxonomy + seed data | Shipped |
 | 006 | `006-vendor-product-management` | Products REST (`/api/products`, `/api/catalog`) — list, create, update, delete, create-from-description, delete-by-description | Shipped |
+| 007 | *(no slice folder)* | Customer order placement (`/api/orders`): `POST` places a multi-vendor order from the cart with all-or-nothing stock decrement and product/vendor snapshots; `GET` returns the customer's own orders, newest-first. Customers only — vendor-side view and status transitions are deferred. | Shipped |
 | 008 | `008-sbert-intent-router` | Lightweight V1 agent: SBERT intent classification + regex entity extraction → routes to existing 005 / 006 APIs. `/api/chat`, `/api/agent/route`, `/api/search` | Shipped |
 
 ## 5. Target stack & constraints

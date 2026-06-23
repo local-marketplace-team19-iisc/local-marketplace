@@ -380,5 +380,34 @@ Decisions added by later sessions that belong to feature 004:
   product readers accept both `{products: [...]}` (new 006/008 shape)
   and `{results: [...]}` (legacy mock shape) without if/else trees in
   components.
+- **D-004-17 — Per-identity provider isolation.** `ProductProvider`
+  and `ChatbotProvider` now sit inside a keyed subtree rooted on
+  `user?.id ?? 'guest'`. When the signed-in user changes (logout,
+  login as a different user, or a session restore that resolves to a
+  different account) React unmounts the old subtree and mounts a
+  fresh one, giving every in-memory store (chat transcript, chatbot
+  `sessionId`, cart, favorites, orders, search results) a clean
+  slate without per-reducer reset plumbing. `AuthProvider` sits
+  outside this boundary so its rehydrate effect (D-004-16) is not
+  disturbed. This closes a session-leak bug where a customer's chat
+  history (and cart) were still visible after switching to a vendor
+  account in the same tab.
+- **D-004-16 — JWT survives reload via `sessionStorage` (revises D16
+  for dev, pragmatic refinement).** D16 originally specified
+  "in-memory only" with restore via `GET /auth/me`. In practice that
+  meant every manual refresh and every Vite HMR module replacement
+  signed the user out, which surfaced as `401 Unauthorized` on
+  `/api/orders` (and would have happened on any protected route).
+  Revision: `AuthProvider` now caches `{token, user}` under the
+  `lm:auth` key in `sessionStorage` (per-tab, wiped on tab close —
+  closer to "in-memory" than `localStorage` and explicitly **not**
+  the long-lived storage forbidden by Constitution C-09). On mount
+  it reads the cache, pushes the token into `apiClient`, and calls
+  `GET /auth/me` to verify it server-side; a 401 silently clears the
+  cache. `ProtectedRoute` renders a "Restoring your session…"
+  placeholder while `status === 'loading'` so a refresh on a guarded
+  route does not flicker through `/login`. The eventual production
+  target remains an httpOnly refresh cookie issued by the backend;
+  this is a transitional measure until that lands.
 
 ---

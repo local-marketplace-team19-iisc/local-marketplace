@@ -11,6 +11,8 @@ from backend.app.api.routes import auth, catalog, health, orders, products
 from backend.app.core.config import settings
 from backend.app.db.session import Base, SessionLocal, engine
 from backend.app.models.category import Category
+from backend.app.models.order import Order
+from backend.app.models.order_item import OrderItem
 from backend.app.models.product import Product
 from backend.app.models.refresh_token import RefreshToken
 from backend.app.models.subcategory import SubCategory
@@ -79,6 +81,19 @@ async def _lifespan(_app: FastAPI):
     except Exception as e:  # pragma: no cover — defensive; never crash startup
         logger.warning("catalog bootstrap skipped: %s", e)
 
+    # V1 Orders feature — bootstrap on local SQLite the same way the catalog
+    # tables are. Production runs Alembic against Postgres; in V1 the orders
+    # tables don't have a migration yet, so we mirror create_all here. Order
+    # depends on users (003) and OrderItem depends on products + vendors (006),
+    # both already created above.
+    try:
+        Base.metadata.create_all(
+            bind=engine,
+            tables=[Order.__table__, OrderItem.__table__],
+        )
+    except Exception as e:  # pragma: no cover — defensive; never crash startup
+        logger.warning("orders bootstrap skipped: %s", e)
+
     try:
         from backend.app.agent_router.intents import get_intent_index
         from backend.app.agent_router.sbert import SBertModelMissingError
@@ -113,9 +128,10 @@ app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(catalog.router, prefix="/api/catalog", tags=["catalog"])
-# /api/orders — V1 stub (see backend/app/api/routes/orders.py). Keeps the
-# frontend's checkout/history pages from 404-ing until a real Orders
-# feature lands. NOT in 008 scope; explicit placeholder.
+# /api/orders — V1 customer order placement + history.
+# Minimal, deterministic: GET lists the customer's own orders, POST places
+# an all-or-nothing multi-vendor order and decrements stock in the same
+# transaction. Vendor-side order view is deferred (see backend/app/api/routes/orders.py).
 app.include_router(orders.router, tags=["orders"])
 
 # Feature 008 — SBERT lightweight agent router. Three surfaces, one routing core.
