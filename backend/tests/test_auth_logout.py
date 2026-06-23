@@ -149,7 +149,7 @@ class TestLogoutFlow:
         }
         response = client.post("/api/auth/register", json=register_payload)
         assert response.status_code == 201
-        register_data = response.json()
+        response.json()
 
         # Login
         login_payload = {

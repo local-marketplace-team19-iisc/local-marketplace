@@ -40,3 +40,4 @@ traces/
 
 # Local SQLite dev databases (runtime data, not code)
 *.db
+.vercel

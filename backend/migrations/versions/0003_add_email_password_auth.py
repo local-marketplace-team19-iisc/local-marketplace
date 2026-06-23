@@ -7,7 +7,6 @@ Create Date: 2026-06-21
 """
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import UUID
 
 # revision identifiers, used by Alembic.
 revision = "0003_add_email_password_auth"

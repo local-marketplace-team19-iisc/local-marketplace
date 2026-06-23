@@ -43,7 +43,7 @@
   cursor: pointer;
   color: var(--color-muted);
 }
-.modal__close:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.4); }
+.modal__close:focus-visible { outline: 3px solid rgba(99, 102, 241, 0.45); }
 .modal__body { padding: 20px; }
 .modal__footer {
   display: flex;

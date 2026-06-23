@@ -1,11 +1,15 @@
+import os
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from backend.app.core.config import settings
+
+_on_vercel = os.environ.get("VERCEL") == "1"
 
 LOCAL_AUTH_DATABASE_URL = "sqlite:///./local_marketplace.db"
 
@@ -56,8 +60,12 @@ Base = declarative_base()
 # Async engine — feature 001 marketplace entities. Only initialize when the URL
 # uses an async driver; the auth demo path is sync-only.
 _async_url = _async_database_url(settings.DATABASE_URL)
+_async_engine_kwargs: dict = {"echo": False}
+if _on_vercel:
+    _async_engine_kwargs["poolclass"] = NullPool
+    _async_engine_kwargs["connect_args"] = {"command_timeout": 7}
 try:
-    async_engine = create_async_engine(_async_url, echo=False) if _async_url else None
+    async_engine = create_async_engine(_async_url, **_async_engine_kwargs) if _async_url else None
 except ModuleNotFoundError:
     async_engine = None
 AsyncSessionLocal = (

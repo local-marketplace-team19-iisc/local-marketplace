@@ -17,13 +17,13 @@
   border-bottom-right-radius: 4px;
 }
 .bubble--bot {
-  background: #eef1f5;
+  background: #1e2644;
   color: var(--color-text);
   border-bottom-left-radius: 4px;
 }
 .bubble--error {
-  background: #fdecea;
-  color: #97211b;
+  background: #2d1515;
+  color: #f87171;
 }
 .bubble__text { margin: 0; white-space: pre-wrap; }
 

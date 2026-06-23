@@ -1,0 +1,20 @@
+# ── Core API ──────────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pydantic-settings==2.6.1
+email-validator==2.2.0
+
+# ── Database (Supabase / PostgreSQL) ─────────────────────────────────────────
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+psycopg[binary]==3.2.10
+supabase>=2.10.0
+
+# ── Auth / Security ───────────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.1
+
+# ── MCP SDK ───────────────────────────────────────────────────────────────────
+mcp>=1.9.0

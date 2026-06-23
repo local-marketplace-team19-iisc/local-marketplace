@@ -1,12 +1,9 @@
-import json
 
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
-from backend.app.models.user import User
 from backend.app.services.rate_limit import reset_rate_limit_store
-from backend.tests.conftest import FakeSession
 
 client = TestClient(app)
 

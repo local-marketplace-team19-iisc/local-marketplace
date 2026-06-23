@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     JWT_REFRESH_TOKEN_TTL_DAYS: int = 7
     JWT_ALGORITHM: str = "HS256"
 
+    # CORS — comma-separated list of allowed origins
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+
     # Rate limiting
     RATE_LIMIT_FAILED_LOGIN_ATTEMPTS: int = 5
     RATE_LIMIT_LOCKOUT_MINUTES: int = 15

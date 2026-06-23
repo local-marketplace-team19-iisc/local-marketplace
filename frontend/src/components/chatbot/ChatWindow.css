@@ -44,7 +44,7 @@
   justify-content: center;
   cursor: pointer;
 }
-.chat-input__attach:hover { background: #f1f3f5; }
+.chat-input__attach:hover { background: #1e2644; }
 .chat-input__attach-icon { width: 24px; height: 24px; object-fit: contain; display: block; }
 .chat-input__chip {
   align-self: flex-start;
@@ -76,5 +76,5 @@
 .chat-input__field:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }

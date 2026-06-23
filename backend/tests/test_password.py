@@ -1,4 +1,3 @@
-import pytest
 
 from backend.app.security.password import hash_password, validate_password_strength, verify_password
 

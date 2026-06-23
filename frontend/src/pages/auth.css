@@ -42,5 +42,5 @@
 }
 .auth-role__option--active {
   border-color: var(--color-primary);
-  background: rgba(37, 99, 235, 0.06);
+  background: rgba(99, 102, 241, 0.15);
 }

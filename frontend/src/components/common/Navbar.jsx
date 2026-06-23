@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import './Navbar.css'
 import logo from '../../assets/images/logo.svg'
 import { useAuth } from '../../hooks/useAuth'
@@ -13,7 +13,9 @@ function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
   const { cartCount } = useProducts()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
+  const isHome = pathname === '/'
 
   const close = () => setOpen(false)
 
@@ -28,7 +30,7 @@ function Navbar() {
   const userLabel = user?.name || username || user?.vendor
 
   return (
-    <header className="navbar">
+    <header className={isHome ? 'navbar navbar--dark' : 'navbar'}>
       <div className="navbar__inner container">
         <NavLink to="/" className="navbar__brand" onClick={close}>
           <img src={logo} alt="Local Marketplace" height="28" />
