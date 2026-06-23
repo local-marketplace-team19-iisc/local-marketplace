@@ -2,6 +2,11 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/build",
   "installCommand": "echo skip",
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.12"
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index.py" }
   ]

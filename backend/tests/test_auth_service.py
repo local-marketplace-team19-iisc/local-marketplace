@@ -156,9 +156,6 @@ class TestLogin:
     """Tests for user login."""
 
     def test_login_generic_error_on_wrong_password(self):
-        # This test demonstrates that login returns generic error
-        # In a real scenario with actual DB, this would check the error message
-        # For now, we verify the logic is sound
         pass
 
 

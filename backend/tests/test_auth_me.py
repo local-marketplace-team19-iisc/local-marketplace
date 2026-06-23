@@ -213,7 +213,7 @@ class TestGetMeWithRefreshedToken:
         headers = {"Authorization": f"Bearer {customer_token}"}
         response = client.get("/api/auth/me", headers=headers)
         assert response.status_code == 200
-        response.json()["id"]
+        _ = response.json()["id"]
 
         # Need to refresh (but we need the refresh token from login)
         # Register and login fresh for this test
