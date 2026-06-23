@@ -27,6 +27,18 @@
 }
 .bubble__text { margin: 0; white-space: pre-wrap; }
 
+.bubble__debug {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  background: rgba(0, 0, 0, 0.05);
+  letter-spacing: 0.01em;
+}
+
 .bubble__listings {
   list-style: none;
   margin: 10px 0 0;

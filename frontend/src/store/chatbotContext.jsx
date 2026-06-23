@@ -37,10 +37,16 @@ export function ChatbotProvider({ children }) {
     dispatch({ type: 'ADD_MESSAGE', message: { id: uid('msg'), sender: 'user', text: shown } })
     dispatch({ type: 'SENDING' })
     try {
-      const { reply, listings } = await chatbotService.sendChat(trimmed, sessionId, image)
+      const { reply, listings, debug } = await chatbotService.sendChat(trimmed, sessionId, image)
       dispatch({
         type: 'ADD_MESSAGE',
-        message: { id: uid('msg'), sender: 'bot', text: reply, listings: listings || [] },
+        message: {
+          id: uid('msg'),
+          sender: 'bot',
+          text: reply,
+          listings: listings || [],
+          debug: debug || null,
+        },
       })
       dispatch({ type: 'DONE' })
     } catch (err) {

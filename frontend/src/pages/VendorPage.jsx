@@ -7,9 +7,10 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  createProductFromDescription,
   deleteProductByDescription,
 } from '../services/productService'
+import { sendChat } from '../services/chatbotService'
+import { ApiError } from '../services/apiError'
 import { validateProductForm } from '../utils/validators'
 import { PRODUCT_CATEGORIES } from '../utils/constants'
 import { formatPrice, toErrorMessage } from '../utils/helpers'
@@ -122,11 +123,30 @@ function VendorPage() {
     }
   }
 
-  // Create directly from a typed/spoken description (feature 006): the backend
-  // parses the catalog fields, persists the product for this vendor, then we
-  // reload the list so the new product appears.
+  // Create directly from a typed/spoken description (feature 008, session 9):
+  // route through the SBERT chat endpoint with an explicit `intent: 'add_product'`
+  // hint so the chat router runs the same add path the chatbot uses, but
+  // without re-classifying free-form descriptions that lack a leading verb
+  // (e.g. "Amul butter 100g, ₹58, 30 in stock, Dairy" otherwise classifies
+  // as `search_products`). On success we close the modal and reload the
+  // vendor's listings; on failure (e.g. parser rejects an unpriced
+  // description) we surface the assistant's reply as the modal error.
   async function createFromDescription(text) {
-    await createProductFromDescription(text)
+    let res
+    try {
+      res = await sendChat(text, null, null, 'add_product')
+    } catch (err) {
+      throw new ApiError(toErrorMessage(err), err?.status || 500)
+    }
+    // The chat router stamps `debug.intent === 'add_product'` and emits a
+    // listing only when persistence succeeded. An empty `listings` array
+    // means the request was understood but the parser/validator refused
+    // (no price, etc.); bubble the assistant's reply as the error so the
+    // vendor sees a useful message instead of a silent close.
+    const succeeded = Array.isArray(res?.listings) && res.listings.length > 0
+    if (!succeeded) {
+      throw new ApiError(res?.reply || 'Could not add the product from that description.', 400)
+    }
     setFormOpen(false)
     await load()
   }

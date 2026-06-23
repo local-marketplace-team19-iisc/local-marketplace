@@ -16,6 +16,19 @@ function MessageBubble({ message }) {
         )}
       >
         <p className="bubble__text">{message.text}</p>
+        {/* SBERT classifier telemetry — small badge on bot replies, when the
+            backend exposed it. Older deployments don't include `debug` so we
+            silently skip. */}
+        {!isUser && message.debug && message.debug.intent ? (
+          <span
+            className="bubble__debug"
+            title={`SBERT classified as ${message.debug.intent} (confidence ${Number(
+              message.debug.confidence,
+            ).toFixed(2)})`}
+          >
+            {message.debug.intent} · {Number(message.debug.confidence).toFixed(2)}
+          </span>
+        ) : null}
         {message.listings && message.listings.length > 0 ? (
           <ul className="bubble__listings">
             {message.listings.map((l) => (
