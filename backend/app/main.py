@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api.routes import auth, health
+from backend.app.api.routes import auth, catalog, health, products
 from backend.app.core.config import settings
 from backend.app.db.session import Base, engine
 from backend.app.models.refresh_token import RefreshToken
@@ -25,6 +25,8 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(products.router, prefix="/api/products", tags=["products"])
+app.include_router(catalog.router, prefix="/api/catalog", tags=["catalog"])
 
 
 @app.on_event("startup")

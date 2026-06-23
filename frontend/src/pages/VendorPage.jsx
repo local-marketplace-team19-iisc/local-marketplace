@@ -2,7 +2,14 @@ import { useEffect, useState, useCallback } from 'react'
 import './vendor.css'
 import '../assets/styles/forms.css'
 import { useAuth } from '../hooks/useAuth'
-import { listProducts, createProduct, updateProduct, deleteProduct } from '../services/productService'
+import {
+  listProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  createProductFromDescription,
+  deleteProductByDescription,
+} from '../services/productService'
 import { validateProductForm } from '../utils/validators'
 import { PRODUCT_CATEGORIES } from '../utils/constants'
 import { formatPrice, toErrorMessage } from '../utils/helpers'
@@ -115,21 +122,28 @@ function VendorPage() {
     }
   }
 
-  // Voice/NLP delete (AC-15, D11): match a spoken/typed description against the vendor's
-  // own products, then open the existing confirmation. Match is a keyword heuristic.
-  function findToDelete(term) {
-    const q = (term ?? deleteQuery).trim().toLowerCase()
+  // Create directly from a typed/spoken description (feature 006): the backend
+  // parses the catalog fields, persists the product for this vendor, then we
+  // reload the list so the new product appears.
+  async function createFromDescription(text) {
+    await createProductFromDescription(text)
+    setFormOpen(false)
+    await load()
+  }
+
+  // Voice/NLP delete (AC-15, D11 / feature 006): send the spoken/typed description
+  // to the backend, which matches the vendor's OWN products and deletes the best
+  // match, then reload. Errors (e.g. no match) surface in the banner.
+  async function deleteByDescription(term) {
+    const q = (term ?? deleteQuery).trim()
     if (!q) return
-    const match = products.find((p) => {
-      const name = p.name.toLowerCase()
-      if (q.includes(name)) return true
-      return name.split(/\W+/).filter((w) => w.length > 2).some((w) => q.includes(w))
-    })
-    if (match) {
-      setError(null)
-      setDeleteTarget(match)
-    } else {
-      setError(`No product matches “${term ?? deleteQuery}”.`)
+    setError(null)
+    try {
+      await deleteProductByDescription(q)
+      setDeleteQuery('')
+      await load()
+    } catch (err) {
+      setError(toErrorMessage(err))
     }
   }
 
@@ -151,8 +165,8 @@ function VendorPage() {
             value={deleteQuery}
             onChange={(e) => setDeleteQuery(e.target.value)}
           />
-          <VoiceButton onText={(t) => { setDeleteQuery(t); findToDelete(t) }} title="Speak the product to delete" />
-          <Button type="button" variant="danger" onClick={() => findToDelete()} disabled={!deleteQuery.trim()}>
+          <VoiceButton onText={(t) => { setDeleteQuery(t); deleteByDescription(t) }} title="Speak the product to delete" />
+          <Button type="button" variant="danger" onClick={() => deleteByDescription()} disabled={!deleteQuery.trim()}>
             Find &amp; delete
           </Button>
         </div>
@@ -193,7 +207,10 @@ function VendorPage() {
       {/* Add / edit form */}
       <Modal open={formOpen} title={editingId ? 'Edit product' : 'Add product'} onClose={() => setFormOpen(false)}>
         <form onSubmit={onSave} noValidate>
-          <ProductExtractPanel onExtracted={applyExtracted} />
+          <ProductExtractPanel
+            onExtracted={applyExtracted}
+            onCreateFromDescription={editingId ? undefined : createFromDescription}
+          />
           <div className="form-group">
             <label className="form-label" htmlFor="p-name">Name</label>
             <input className="form-input" id="p-name" name="name" value={form.name} onChange={updateField} aria-invalid={Boolean(formErrors.name)} aria-describedby={formErrors.name ? 'p-name-err' : undefined} />

@@ -57,6 +57,12 @@ export async function mockRequest(method, path, { body, params, token } = {}) {
 
   // ---- Products ----
   if (method === 'GET' && path === '/api/products') return listProducts(params)
+  if (method === 'POST' && path === '/api/products/from-description') {
+    return createProductFromDescription(requireVendor(token), readBody(body))
+  }
+  if (method === 'POST' && path === '/api/products/delete-by-description') {
+    return deleteProductByDescription(requireVendor(token), readBody(body))
+  }
   if (method === 'POST' && path === '/api/products') return createProduct(requireVendor(token), body)
 
   const productMatch = path.match(PRODUCT_ID_RE)
@@ -161,6 +167,52 @@ function deleteProduct(vendor, id) {
   if (db.products[idx].vendorId !== vendor.vendorId) throw new ApiError('You can only delete your own products.', 403)
   db.products.splice(idx, 1)
   return { success: true, id }
+}
+
+// ---- Feature 006: description-driven create / delete (mock parity) ----
+// Mirrors the backend deterministic parser + vendor-scoped match. Reuses the
+// extractProductFields heuristic for parsing; rejects a missing price (005 FR-16).
+function createProductFromDescription(vendor, { description_text } = {}) {
+  const text = (description_text || '').toString()
+  if (!text.trim()) throw new ApiError('Describe the product first.', 400)
+  const { product: fields } = extractProductFields({ prompt: text })
+  if (fields.price === null || fields.price === undefined) {
+    throw new ApiError('Could not find a price in the description. Include a price, e.g. ₹58 or Rs 58.', 400)
+  }
+  const product = {
+    id: nextProductId(),
+    name: fields.name,
+    price: Number(fields.price),
+    stock: Number(fields.stock || 0),
+    category: fields.category,
+    description: text,
+    rating: 0,
+    vendorId: vendor.vendorId,
+    vendor: vendor.vendor,
+  }
+  db.products.push(product)
+  return { product: withAvailability(product) }
+}
+
+function deleteProductByDescription(vendor, { description_text } = {}) {
+  const q = (description_text || '').toString().toLowerCase()
+  const tokens = q.split(/\W+/).filter((w) => w.length > 2)
+  const owned = db.products.filter((p) => p.vendorId === vendor.vendorId)
+  let best = null
+  let bestScore = 0
+  for (const p of owned) {
+    const hay = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase()
+    let score = tokens.filter((t) => hay.includes(t)).length
+    if (q.includes(p.name.toLowerCase())) score += 5
+    if (score > 0 && score > bestScore) {
+      best = p
+      bestScore = score
+    }
+  }
+  if (!best) throw new ApiError(`No product of yours matches “${description_text}”.`, 404)
+  const idx = db.products.findIndex((p) => p.id === best.id)
+  db.products.splice(idx, 1)
+  return withAvailability(best)
 }
 
 // ---------- Search handler (cheapest-first per master SPEC ranking) ----------

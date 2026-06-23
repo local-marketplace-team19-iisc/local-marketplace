@@ -8,10 +8,14 @@ import imageGif from '../../assets/images/image.gif'
 
 // NLP-prompt + image extraction control for the vendor add/edit form (AC-13/14, D5/D6).
 // Calls onExtracted(productFields) so the parent can pre-fill the form for review.
-function ProductExtractPanel({ onExtracted }) {
+// When `onCreateFromDescription` is provided (feature 006), also offers a direct
+// "Create from description" action that sends the typed/spoken text to the backend
+// parser-and-create endpoint, skipping the manual form.
+function ProductExtractPanel({ onExtracted, onCreateFromDescription }) {
   const [prompt, setPrompt] = useState('')
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [error, setError] = useState(null)
   const [done, setDone] = useState(false)
 
@@ -31,6 +35,24 @@ function ProductExtractPanel({ onExtracted }) {
       setError(toErrorMessage(err))
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function createDirect() {
+    if (!prompt.trim()) {
+      setError('Describe the product first.')
+      return
+    }
+    setCreating(true)
+    setError(null)
+    setDone(false)
+    try {
+      await onCreateFromDescription(prompt.trim())
+      setPrompt('')
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -66,6 +88,11 @@ function ProductExtractPanel({ onExtracted }) {
       {done ? <span className="form-hint">Fields filled below — review and save.</span> : null}
       <div className="extract-panel__action">
         <Button type="button" variant="secondary" onClick={run} loading={loading}>Auto-fill fields</Button>
+        {onCreateFromDescription ? (
+          <Button type="button" variant="primary" onClick={createDirect} loading={creating} disabled={!prompt.trim()}>
+            Create from description
+          </Button>
+        ) : null}
       </div>
     </div>
   )

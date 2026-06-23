@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM --platform=linux/amd64 python:3.11-slim
 
 # Accept corporate proxy + SSL-inspection CA at build time.
 # These args are passed via --build-arg; they have no effect when unset.
