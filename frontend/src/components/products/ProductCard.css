@@ -44,4 +44,4 @@
   cursor: pointer;
   color: var(--color-danger);
 }
-.product-card__fav:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.4); }
+.product-card__fav:focus-visible { outline: 3px solid rgba(99, 102, 241, 0.45); }

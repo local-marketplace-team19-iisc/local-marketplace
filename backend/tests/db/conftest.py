@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 import asyncpg
 import pytest_asyncio
-from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.app.models.base import Base

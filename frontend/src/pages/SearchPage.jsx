@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import './search.css'
 import '../assets/styles/forms.css'
 import { searchProducts, searchByImage } from '../services/searchService'
@@ -7,11 +8,13 @@ import Loader from '../components/common/Loader'
 import Button from '../components/common/Button'
 import VoiceButton from '../components/common/VoiceButton'
 import { toErrorMessage } from '../utils/helpers'
+import { useAuth } from '../hooks/useAuth'
 import imageGif from '../assets/images/image.gif'
 
 // Customer product search (AC-09). Results show name/price/vendor/rating/availability
 // via ProductCard (AC-10) and arrive cheapest-first from the API.
 function SearchPage() {
+  const { isAuthenticated } = useAuth()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -37,10 +40,10 @@ function SearchPage() {
     }
   }, [])
 
-  // Initial load lists all in-stock products.
+  // Only load products on mount when the user is signed in.
   useEffect(() => {
-    runSearch('')
-  }, [runSearch])
+    if (isAuthenticated) runSearch('')
+  }, [isAuthenticated, runSearch])
 
   function onSubmit(e) {
     e.preventDefault()
@@ -66,6 +69,17 @@ function SearchPage() {
     }
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="container">
+        <h1 className="page-title">Search products</h1>
+        <p className="search-unauthenticated">
+          <Link to="/login">Sign in</Link> or <Link to="/register">create an account</Link> to browse products.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="container">
       <h1 className="page-title">Search products</h1>
@@ -76,7 +90,7 @@ function SearchPage() {
           id="search-input"
           className="search-bar__input"
           type="search"
-          placeholder="Try “tomatoes”, “milk”, “bakery”…"
+          placeholder={'Try “tomatoes”, “milk”, “bakery”…'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

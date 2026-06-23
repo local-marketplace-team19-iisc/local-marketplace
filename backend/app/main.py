@@ -1,8 +1,12 @@
+import os
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.app.agent_router.api import router as agent_route_router
 from backend.app.agent_router.chat_adapter import router as agent_chat_router
@@ -118,13 +122,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(health.router)
+app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(catalog.router, prefix="/api/catalog", tags=["catalog"])
@@ -139,6 +143,21 @@ app.include_router(orders.router, tags=["orders"])
 app.include_router(agent_route_router, tags=["agent"])
 app.include_router(agent_chat_router, tags=["chat"])
 app.include_router(agent_search_router, tags=["search"])
+
+
+_spa_dir = "frontend/build"
+_spa_index = os.path.join(_spa_dir, "index.html")
+
+if os.path.exists(_spa_dir):
+    app.mount("/", StaticFiles(directory=_spa_dir, html=True), name="frontend")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def spa_fallback(request: Request, exc: StarletteHTTPException) -> FileResponse:
+    # For non-API 404s, serve the SPA so React Router handles the path.
+    if exc.status_code == 404 and not request.url.path.startswith("/api/") and os.path.exists(_spa_index):
+        return FileResponse(_spa_index)
+    raise exc
 
 
 def main() -> None:

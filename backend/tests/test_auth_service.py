@@ -1,13 +1,11 @@
 import uuid
-from datetime import datetime
 
 import pytest
 
-from backend.app.models.user import User, UserRole
+from backend.app.models.user import User
 from backend.app.services.auth_service import (
     AuthValidationError,
     get_current_user,
-    login,
     logout,
     register_customer,
     register_vendor,
@@ -78,10 +76,6 @@ class TestRegisterCustomer:
     """Tests for customer registration."""
 
     def test_register_customer_with_valid_data(self, sample_customer_payload):
-        from backend.tests.conftest import FakeSession
-
-        db = FakeSession()
-
         # We'll need to mock the database query for this test
         # For now, test the validation logic
         email = sample_customer_payload["email"]
@@ -105,7 +99,6 @@ class TestRegisterVendor:
     """Tests for vendor registration."""
 
     def test_register_vendor_with_valid_location(self, sample_vendor_payload):
-        email = sample_vendor_payload["email"]
         location = sample_vendor_payload["location"]
 
         assert location == (40.7128, -74.0060)
@@ -163,13 +156,7 @@ class TestLogin:
     """Tests for user login."""
 
     def test_login_generic_error_on_wrong_password(self):
-        from backend.tests.conftest import FakeSession
-
-        db = FakeSession()
-
-        # This test demonstrates that login returns generic error
-        # In a real scenario with actual DB, this would check the error message
-        # For now, we verify the logic is sound
+        pass
 
 
 class TestLogout:

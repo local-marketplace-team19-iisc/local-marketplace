@@ -1,4 +1,3 @@
-import pytest
 
 from backend.app.services.rate_limit import (
     check_login_rate_limit,

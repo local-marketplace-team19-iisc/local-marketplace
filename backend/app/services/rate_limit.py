@@ -87,7 +87,7 @@ def check_signup_rate_limit(ip: str) -> tuple[bool, str]:
     if key in _rate_limit_store:
         signup_count = sum(count for _, count in _rate_limit_store[key])
         if signup_count >= max_signups:
-            return False, f"Too many signup attempts from this IP. Try again later."
+            return False, "Too many signup attempts from this IP. Try again later."
 
     return True, ""
 

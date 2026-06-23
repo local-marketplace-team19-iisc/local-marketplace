@@ -6,3 +6,4 @@ dist/
 *.local
 .eslintcache
 npm-debug.log*
+.vercel

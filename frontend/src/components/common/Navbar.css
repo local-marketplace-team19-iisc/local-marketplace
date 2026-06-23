@@ -42,7 +42,7 @@
   font: inherit;
   cursor: pointer;
 }
-.navbar__link:hover { background: #f1f3f5; text-decoration: none; }
+.navbar__link:hover { background: #1e2644; text-decoration: none; }
 .navbar__link--active { color: var(--color-primary); font-weight: 600; }
 .navbar__user {
   color: var(--color-muted);
@@ -54,7 +54,36 @@
   white-space: nowrap;
 }
 .navbar__logout { color: var(--color-danger); }
-.navbar__link:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.4); }
+.navbar__link:focus-visible { outline: 3px solid rgba(99, 102, 241, 0.45); }
+
+/* Dark variant — used on the homepage hero.
+   All colours are pre-blended against #0f1535 so the linter can verify contrast. */
+.navbar--dark {
+  background: #0f1535;
+  border-bottom-color: #1e2455;
+}
+.navbar--dark .navbar__link {
+  color: #c4cbe4;
+}
+.navbar--dark .navbar__link:hover {
+  background: #161a3c;
+  color: #ffffff;
+}
+.navbar--dark .navbar__link--active {
+  color: #ffffff;
+  background: #1e2457;
+}
+.navbar--dark .navbar__user {
+  color: #9ba5c2;
+}
+.navbar--dark .navbar__logout {
+  color: #f87171;
+}
+.navbar--dark .navbar__toggle {
+  background: #161a3c;
+  border-color: #2a3060;
+  color: #ffffff;
+}
 
 @media (max-width: 720px) {
   .navbar__toggle { display: inline-block; }

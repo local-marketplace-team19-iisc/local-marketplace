@@ -51,7 +51,7 @@ def vendor_token():
     }
     response = client.post("/api/auth/register-vendor", json=register_payload)
     assert response.status_code == 201
-    vendor_data = response.json()
+    response.json()
 
     # Login
     login_payload = {
@@ -213,7 +213,7 @@ class TestGetMeWithRefreshedToken:
         headers = {"Authorization": f"Bearer {customer_token}"}
         response = client.get("/api/auth/me", headers=headers)
         assert response.status_code == 200
-        initial_user_id = response.json()["id"]
+        _ = response.json()["id"]
 
         # Need to refresh (but we need the refresh token from login)
         # Register and login fresh for this test
