@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api.routes import auth, catalog, health, orders, products
+from backend.app.api.routes import auth, catalog, health, orders, products, search
 from backend.app.core.config import settings
 from backend.app.db.session import Base, engine
 from backend.app.models.order import Cart, CartItem, Order, OrderItem
@@ -29,6 +29,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(catalog.router, prefix="/api/catalog", tags=["catalog"])
 app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
+app.include_router(search.router, prefix="/api/search", tags=["search"])
 
 
 @app.on_event("startup")
