@@ -51,6 +51,7 @@ class AuthResponse(BaseModel):
     refresh_token: str
     user_id: str
     user_type: str  # 'customer' or 'vendor'
+    email: Optional[str] = None
     vendor_id: Optional[str] = None
     shop_name: Optional[str] = None
 

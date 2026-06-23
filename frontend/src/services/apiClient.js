@@ -1,7 +1,7 @@
 // Central REST client (C-03). All backend access goes through apiRequest so the
 // mock toggle (D3) and the in-memory JWT (C-08/C-09) live in exactly one place.
 
-import { API_BASE_URL, USE_MOCKS } from '../utils/constants'
+import { API_BASE_URL, USE_AUTH_MOCKS, USE_MOCKS } from '../utils/constants'
 import { ApiError } from './apiError'
 import { mockRequest } from './_mocks'
 
@@ -20,7 +20,8 @@ export function getAuthToken() {
  * @param {{body?: object, params?: object}} [options]
  */
 export async function apiRequest(method, path, { body, params } = {}) {
-  if (USE_MOCKS) {
+  const isAuthRequest = path.startsWith('/api/auth/')
+  if ((isAuthRequest && USE_AUTH_MOCKS) || (!isAuthRequest && USE_MOCKS)) {
     return mockRequest(method, path, { body, params, token: authToken })
   }
 
@@ -52,7 +53,7 @@ export async function apiRequest(method, path, { body, params } = {}) {
   const data = await res.json().catch(() => null)
   if (!res.ok) {
     throw new ApiError(
-      (data && data.message) || `Request failed (${res.status}).`,
+      (data && (data.message || data.detail)) || `Request failed (${res.status}).`,
       res.status,
       data,
     )

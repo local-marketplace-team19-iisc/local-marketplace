@@ -7,6 +7,9 @@ export const API_BASE_URL =
 export const USE_MOCKS =
   String(import.meta.env.VITE_USE_MOCKS).toLowerCase() === 'true'
 
+export const USE_AUTH_MOCKS =
+  String(import.meta.env.VITE_USE_AUTH_MOCKS).toLowerCase() === 'true'
+
 // Simulated network latency for the mock layer (ms).
 export const MOCK_DELAY_MS = 200
 
@@ -35,6 +38,7 @@ export const PRODUCT_CATEGORIES = [
 // Assumed REST contract (spec.md §6 / FRONTEND_DOCUMENTATION.md §4). Single source for paths.
 export const API_ROUTES = {
   register: '/api/auth/register',
+  registerVendor: '/api/auth/register-vendor',
   login: '/api/auth/login',
   me: '/api/auth/me',
   products: '/api/products',

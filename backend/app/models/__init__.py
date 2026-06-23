@@ -11,7 +11,4 @@ __all__ = [
     "Vendor",
     "Otp",
     "RefreshToken",
-    "Category",
-    "SubCategory",
-    "Product",
 ]

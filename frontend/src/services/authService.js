@@ -1,38 +1,49 @@
 // Auth REST calls (C-03). Thin wrappers over apiClient — no business logic (C-04).
-import { apiRequest, setAuthToken } from './apiClient'
-import { API_ROUTES } from '../utils/constants'
+import { apiRequest } from './apiClient'
+import { API_ROUTES, ROLES } from '../utils/constants'
 
-// The mock layer returns { token, user } directly. The real 003 backend returns
-// { access_token, refresh_token, user_id, user_type } and exposes the profile via
-// GET /api/auth/me. authContext expects { token, user }, so adapt the real shape
-// here (the integration seam — D3). Mock responses pass through unchanged.
-async function toSession(resp) {
-  if (resp && resp.token && resp.user) return resp // mock contract
-  const token = resp.access_token
-  setAuthToken(token) // authorize the immediate /me call
-  let me = {}
-  try {
-    me = await apiRequest('GET', API_ROUTES.me)
-  } catch {
-    me = {}
+function toAuthState(data) {
+  const role = data.user_type
+  return {
+    token: data.access_token,
+    refreshToken: data.refresh_token,
+    user: {
+      id: data.user_id,
+      email: data.email,
+      role,
+      vendorId: data.vendor_id || null,
+      vendor: data.shop_name || null,
+    },
   }
-  const user = {
-    id: me.id ?? resp.user_id,
-    email: me.email,
-    role: me.user_type ?? resp.user_type,
-    vendorId: me.vendor_id ?? resp.vendor_id ?? null,
-    vendor: me.shop_name ?? null,
-    name: me.shop_name ?? me.email ?? '',
-  }
-  return { token, user }
 }
 
-export async function login(payload) {
-  return toSession(await apiRequest('POST', API_ROUTES.login, { body: payload }))
+export function register(payload) {
+  const isVendor = payload.role === ROLES.VENDOR
+  const body = isVendor
+    ? {
+        email: payload.email,
+        password: payload.password,
+        password_confirm: payload.password_confirm,
+        shop_name: payload.shop_name || payload.name,
+        location: {
+          lat: Number(payload.location_lat),
+          lon: Number(payload.location_lon),
+        },
+        shop_description: payload.shop_description || '',
+      }
+    : {
+        email: payload.email,
+        password: payload.password,
+        password_confirm: payload.password_confirm,
+        full_name: payload.name,
+      }
+
+  return apiRequest('POST', isVendor ? API_ROUTES.registerVendor : API_ROUTES.register, { body })
+    .then(toAuthState)
 }
 
-export async function register(payload) {
-  return toSession(await apiRequest('POST', API_ROUTES.register, { body: payload }))
+export function login(payload) {
+  return apiRequest('POST', API_ROUTES.login, { body: payload }).then(toAuthState)
 }
 
 export function getMe() {

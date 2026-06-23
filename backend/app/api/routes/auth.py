@@ -31,7 +31,7 @@ def get_client_ip(request: Request) -> str:
     return "unknown"
 
 
-@router.post("/register", status_code=201)
+@router.post("/register", status_code=201, response_model=AuthResponse)
 def register_customer(
     request_data: RegisterRequest,
     request: Request,
@@ -65,6 +65,7 @@ def register_customer(
             refresh_token=result["refresh_token"],
             user_id=result["user_id"],
             user_type=result["user_type"],
+            email=result.get("email"),
         )
     except auth_service.AuthValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -126,6 +127,7 @@ def register_vendor(
             refresh_token=result["refresh_token"],
             user_id=result["user_id"],
             user_type=result["user_type"],
+            email=result.get("email"),
             vendor_id=result.get("vendor_id"),
             shop_name=result.get("shop_name"),
         )
@@ -133,11 +135,11 @@ def register_vendor(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.post("/login", status_code=200)
+@router.post("/login", status_code=200, response_model=AuthResponse)
 def login(
     request_data: LoginRequest,
     db: Session = Depends(get_db),
-):
+) -> AuthResponse:
     """Authenticate user with email and password.
 
     Returns:
@@ -151,12 +153,15 @@ def login(
     try:
         result = auth_service.login(db, request_data.email, request_data.password)
 
-        return {
-            "access_token": result["access_token"],
-            "refresh_token": result["refresh_token"],
-            "user_id": result["user_id"],
-            "user_type": result["user_type"],
-        }
+        return AuthResponse(
+            access_token=result["access_token"],
+            refresh_token=result["refresh_token"],
+            user_id=result["user_id"],
+            user_type=result["user_type"],
+            email=result.get("email"),
+            vendor_id=result.get("vendor_id"),
+            shop_name=result.get("shop_name"),
+        )
     except auth_service.AuthUnauthorizedError as e:
         raise HTTPException(status_code=401, detail=str(e)) from e
     except Exception as e:
@@ -188,6 +193,7 @@ def refresh_token(
             refresh_token=result["refresh_token"],
             user_id=result["user_id"],
             user_type=result["user_type"],
+            email=result.get("email"),
         )
     except auth_service.AuthUnauthorizedError as e:
         raise HTTPException(status_code=401, detail=str(e)) from e
