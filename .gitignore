@@ -34,7 +34,8 @@ npm-debug.log*
 *.log
 # Feature 002 — Conversational agent
 # Pre-downloaded Whisper weights (large; documented as a fetch step in README)
-models/
+# Anchored to repo root so it does NOT collide with backend/app/models/ (ORM).
+/models/
 # Local trace / log directory
 traces/
 

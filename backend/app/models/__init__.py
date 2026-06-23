@@ -1,3 +1,9 @@
+"""Marketplace SQLAlchemy models.
+
+Auth (feature 003): User, Vendor, Otp, RefreshToken.
+Catalog/Product (feature 006): Category, SubCategory, Product.
+"""
+
 from backend.app.models.category import Category
 from backend.app.models.otp import Otp
 from backend.app.models.product import Product
@@ -8,10 +14,10 @@ from backend.app.models.vendor import Vendor
 
 __all__ = [
     "Category",
+    "Otp",
     "Product",
+    "RefreshToken",
     "SubCategory",
     "User",
     "Vendor",
-    "Otp",
-    "RefreshToken",
 ]

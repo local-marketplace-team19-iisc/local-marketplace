@@ -218,4 +218,167 @@ workflow. `backend/app/catalog/` (+ new models/services/routes) and the
 (`ValueError: password cannot be longer than 72 bytes`), causing the pre-existing
 auth/password tests (003) to error. 006's own tests are green. Pinning
 `bcrypt<4.1` would restore the auth suite but touches 003/governance config —
-left for a human decision.
+  left for a human decision.
+
+### Feature 006 — post-merge ORM model fix-up (2026-06-23)
+
+The PR landed without `backend/app/models/{category,product,subcategory}.py`,
+so `services/product_service.py` was un-importable on `main`. These three
+ORM files were added in the 008-cleanup session to match the Alembic 0004
+schema (portable SQLAlchemy column types: `Uuid(as_uuid=True)`, `String(20)`
+for `unit_type` so the same models run on SQLite for tests/local dev and
+on Postgres in production). Logged in
+`specs/008-sbert-intent-router/conversation-history.md` (Session 3).
+
+---
+
+## Feature 008 — SBERT Lightweight Intent Router (2026-06-23)
+
+V1 of the natural-language agent. Replaces the planner/orchestrator/tool-registry
+design from feature 002/007 with a stateless, LLM-free pipeline:
+
+```
+text → SBERT classify → role gate → regex/SBERT extract → existing API → projection → wire
+```
+
+### Key decisions
+
+- **D-008-1 — No LLM in the request path.** Feature 002's planner code stays
+  on disk (rollback path), but `/api/chat`, `/api/agent/route`, and `/api/search`
+  all go through `backend.app.agent_router.route.route_text(...)` instead. No
+  network calls outside the optional one-time SBERT download.
+- **D-008-2 — Six labelled intents + `unknown`** (spec FR-1):
+  `search_products`, `add_product`, `update_product`, `delete_product`,
+  `get_my_listings`, `get_categories`. The classifier returns `unknown` when
+  the best prototype cosine similarity is below
+  `INTENT_CONFIDENCE_THRESHOLD` (default 0.45).
+- **D-008-3 — SBERT model: `all-MiniLM-L6-v2`** (80 MB, English, CPU-friendly).
+  Multilingual variants are deferred to v1.x; the model id is one
+  config-key swap away.
+- **D-008-4 — Entity extraction is deterministic.** Regex covers price,
+  max/min price, product id. SBERT is only used for the fuzzy category-name
+  match. The router never asks an LLM to extract structured data from text.
+- **D-008-5 — Stateless.** No Redis, no session memory. The chat endpoint
+  echoes a synthetic `sessionId` back so the frontend's existing UI
+  contract doesn't break.
+- **D-008-6 — Products API is the real feature 006.** As of the
+  2026-06-23 cleanup session, the temporary `products_stub/` is gone.
+  The SBERT router dispatches into `backend.app.services.product_service`
+  (006) directly, using a sync `Session` from `db.session.SessionLocal`.
+  When the deferred 001 catalog migration lands, no router changes are
+  needed.
+
+### HTTP surfaces
+
+| Endpoint | Auth | Shape |
+|---|---|---|
+| `POST /api/agent/route` | Bearer required | Verbose: `{intent, entities, reply, listings, api_called, api_status, meta}` |
+| `POST /api/chat` | Bearer required | Frontend-compatible: `{reply, listings, sessionId}` |
+| `GET /api/search?q=...` | Bearer optional | Listings-only: `{products, meta}` |
+
+### Testing
+
+- `make router-test` runs the agent-router fast suite (SBERT loader
+  cache/snapshot/download branches, deterministic entity extraction,
+  router dispatch per intent with classifier mocked, cross-vendor
+  protection, endpoint-level adapters, timeout fall-through).
+- 1 slow test (`make sbert-test`, opt-in via `-m slow`) — loads the real
+  SBERT model and asserts ≥ 90 % accuracy on a 35-case labelled set
+  including 5 distractors that MUST resolve to `unknown`.
+
+### Operational
+
+- `make sbert-download` pre-fetches the model into `MODELS_DIR`
+  (default `./models/sbert`). After that, the app boots offline.
+- `ALLOW_MODEL_DOWNLOAD=false` (the default) makes the loader fail fast
+  with a friendly "MODELS_DIR / ALLOW_MODEL_DOWNLOAD" message rather than
+  hanging on the first request when neither is set.
+
+---
+
+### Feature 000 — App Scaffold (logged retroactively)
+
+The runnable starting point: FastAPI + uvicorn, `/health`, ruff, pytest,
+`.env.example`. Governed like a feature but not a product feature; its
+`spec.md` is the master `SPEC.md`.
+
+- **D-000-1 — FastAPI on Python 3.11.** Async-capable, OpenAPI by
+  convention, matches SPEC §5.
+- **D-000-2 — `pydantic-settings` for config.** Single `Settings` class
+  reads from env + `.env`; `.env.example` committed, `.env` gitignored
+  (Constitution P4).
+- **D-000-3 — `ruff` is the only linter/formatter.** No `black` /
+  `flake8` / `isort` to avoid tool drift.
+- **D-000-4 — `pytest + httpx` for the test harness.** TestClient is
+  the contract surface for every later feature's HTTP tests.
+
+### Feature 001 — DB Schema (logged retroactively)
+
+The ORM and migrations baseline that every later feature depends on.
+
+- **D-001-1 — SQLAlchemy 2.x `DeclarativeBase`** in `models/base.py`;
+  every model in `models/models.py` (single-file is intentional for V1
+  — split when it exceeds ~500 lines).
+- **D-001-2 — Alembic for versioned migrations.** Migration files live
+  in `backend/db/migrations/`; `down_revision` chain is the truth.
+- **D-001-3 — Portable column types.** ORM uses `Uuid(as_uuid=True)`
+  and short `String(...)` enums so the same models run on SQLite
+  (tests, V1 local dev) and Postgres (production).
+- **D-001-4 — PostGIS + pgvector planned, not yet enabled.** The
+  schema reserves the location/embedding fields; extension creation is
+  deferred to the feature that first needs the index.
+- **D-001-5 — `db/init/01-extensions.sql`** is the one-time Docker
+  bootstrap (`CREATE EXTENSION postgis, vector`) — runs from the
+  Postgres container's `docker-entrypoint-initdb.d/`, not from app
+  startup.
+
+### Feature 005 — Catalog Taxonomy (logged retroactively)
+
+Two-level catalog (category → subcategory) that 006 persists and 008
+matches against. Decisions referenced by D4 of feature 006 and the
+`category` extractor in feature 008.
+
+- **D-005-1 — Two-level taxonomy.** `categories` and `subcategories`
+  only — no n-ary tree. Keeps the parser, the dashboard form, and the
+  SBERT category-match cosine all simple.
+- **D-005-2 — Seed data is the source of truth.** `catalog/seed_data.py`
+  declares the taxonomy in code; the seed runs idempotently at
+  bootstrap. Frontend `PRODUCT_CATEGORIES` mirrors the same list.
+- **D-005-3 — `subcategory_id` is NOT NULL on products** (FR-6).
+  Unknown / free-form categories fall back to the seeded
+  `General → General` subcategory (consumed by 006 D4).
+- **D-005-4 — Price stored as `NUMERIC(12, 2)`** (₹, two decimal
+  places per SPEC §2). 005 model layer rejects under-precision; the
+  006 REST layer normalizes for friendlier UX (006 D6).
+
+### Feature 004 — Frontend (logged retroactively, slug correction)
+
+The React 19 SPA — customer chatbot, vendor dashboard, search bar,
+text + voice→text input. This entry exists because the early
+architectural decisions for this feature were appended to this log
+under the heading **"Feature 002 — Frontend"** before slot 002 was
+later reassigned to the parked planner/orchestrator agent (see Errata
+below). The decisions themselves (D1–D11 above) remain valid — only
+the heading is misleading.
+
+Decisions added by later sessions that belong to feature 004:
+
+- **D-004-12 — SBERT debug badge.** When `/api/chat` returns a
+  `debug.intent` / `debug.confidence`, the chatbot bubble renders a
+  small monospace badge showing both. Opt-in for developer surfaces;
+  invisible to end users when the field is absent.
+- **D-004-13 — Voice auto-submit UX.** The voice button auto-submits
+  the transcript when the textarea is empty; appends otherwise.
+  Implemented behind a single-shot `useRef` guard so React 18
+  StrictMode's double-invocation of state updaters cannot fire two
+  POSTs (feature 008 Session 9 / 10).
+- **D-004-14 — `forced_intent` hint on `/api/chat`.** Specific UI
+  flows (Add-Product modal) pass `intent: "add_product"` to the
+  backend so SBERT classification is bypassed and a bare product
+  description cannot be silently mis-classified.
+- **D-004-15 — Tolerate two backend response shapes.** Search and
+  product readers accept both `{products: [...]}` (new 006/008 shape)
+  and `{results: [...]}` (legacy mock shape) without if/else trees in
+  components.
+
+---
