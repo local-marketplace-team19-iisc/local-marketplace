@@ -34,14 +34,36 @@ export function validateLoginForm({ email, password }) {
   return errors
 }
 
-export function validateRegisterForm({ name, email, password, role }) {
+export function validateRegisterForm({
+  name,
+  email,
+  password,
+  password_confirm,
+  role,
+  shop_name,
+  location_lat,
+  location_lon,
+}) {
   const errors = {}
   if (!isRequired(name)) errors.name = 'Name is required.'
   if (!isRequired(email)) errors.email = 'Email is required.'
   else if (!isEmail(email)) errors.email = 'Enter a valid email address.'
   if (!isRequired(password)) errors.password = 'Password is required.'
   else if (!minLength(password, 8)) errors.password = 'Password must be at least 8 characters.'
+  if (!isRequired(password_confirm)) errors.password_confirm = 'Confirm your password.'
+  else if (password !== password_confirm) errors.password_confirm = 'Passwords do not match.'
   if (!isRequired(role)) errors.role = 'Select an account type.'
+  if (role === 'vendor') {
+    if (!isRequired(shop_name)) errors.shop_name = 'Shop name is required.'
+    if (!isRequired(location_lat)) errors.location_lat = 'Latitude is required.'
+    else if (Number.isNaN(Number(location_lat)) || Number(location_lat) < -90 || Number(location_lat) > 90) {
+      errors.location_lat = 'Latitude must be between -90 and 90.'
+    }
+    if (!isRequired(location_lon)) errors.location_lon = 'Longitude is required.'
+    else if (Number.isNaN(Number(location_lon)) || Number(location_lon) < -180 || Number(location_lon) > 180) {
+      errors.location_lon = 'Longitude must be between -180 and 180.'
+    }
+  }
   return errors
 }
 

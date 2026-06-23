@@ -99,6 +99,9 @@ Build incrementally with clear exit criteria for each phase. Each phase is compl
   - `GET /me` — Call auth_service.get_current_user, return 200 + UserMeResponse; 401 if not authenticated
 - `backend/app/main.py` — Wire auth router:
   - `app.include_router(auth.router, prefix="/api/auth", tags=["auth"])`
+- `backend/app/main.py` — Enable local/dev OpenAPI:
+  - `/openapi.json` available for API contracts
+  - `/docs` available for Swagger UI during local development
 - `backend/.env.example` — Add auth env vars (if not present, merge only):
   - `JWT_SECRET=your-secret-here`
   - `JWT_ACCESS_TOKEN_TTL_MINUTES=60`
@@ -116,11 +119,14 @@ Build incrementally with clear exit criteria for each phase. Each phase is compl
 - [ ] POST /register creates a customer user, returns 201 + AuthResponse with user_type='customer'
 - [ ] POST /register-vendor creates vendor user, returns 201 + AuthResponse with user_type='vendor'
 - [ ] POST /login returns 200 + tokens on valid credentials; 401 on invalid
+- [ ] POST /login returns a generic credential failure suitable for frontend display as "Credentials mismatch"
 - [ ] POST /refresh returns 200 + new tokens (old refresh token invalidated in DB)
 - [ ] POST /logout returns 204; subsequent refresh with revoked token returns 401
 - [ ] GET /me returns 200 + UserMeResponse with user_type and vendor fields (if vendor); 401 without JWT
 - [ ] Rate limit responses (429) are returned correctly on limit exceeded
 - [ ] Endpoints are accessible at `/api/auth/<endpoint>`
+- [ ] `/openapi.json` includes request/response schemas for all auth endpoints
+- [ ] `/docs` can be opened locally to inspect and exercise auth endpoints
 - [ ] Request/response validation works: 400 on invalid schema, descriptive error messages
 - [ ] `make lint` passes (no import errors, style clean)
 
@@ -192,6 +198,7 @@ Build incrementally with clear exit criteria for each phase. Each phase is compl
 - Vendor onboarding with shop location (lat/lon)
 - Rate limiting on failed login attempts
 - Backend API endpoints: `/auth/register`, `/auth/register-vendor`, `/auth/login`, `/auth/refresh`, `/auth/logout`
+- OpenAPI contract exposure through `/openapi.json` and local Swagger UI through `/docs`
 - DB migrations for users, vendors, refresh_tokens tables
 - Password hashing (bcrypt) & validation
 
@@ -227,6 +234,7 @@ Build incrementally with clear exit criteria for each phase. Each phase is compl
 | Path | Change |
 | :-- | :-- |
 | `backend/app/main.py` | Add router: `app.include_router(auth.router, prefix="/api/auth", tags=["auth"])` |
+| `backend/app/main.py` | Enable OpenAPI JSON and local Swagger UI for the auth API contract |
 | `backend/app/models/__init__.py` | Export User, Vendor, RefreshToken models |
 | `backend/.env.example` | Add env vars: `JWT_SECRET`, `JWT_ACCESS_TOKEN_TTL_MINUTES=60`, `JWT_REFRESH_TOKEN_TTL_DAYS=7`, `RATE_LIMIT_FAILED_LOGIN_ATTEMPTS=5`, `RATE_LIMIT_LOCKOUT_MINUTES=15` |
 | `backend/pyproject.toml` | Add dependencies: `pydantic`, `python-jose[cryptography]` for JWT, `passlib[bcrypt]` for password hashing, `slowapi` for rate limiting (if not present) |
@@ -251,6 +259,7 @@ Build incrementally with clear exit criteria for each phase. Each phase is compl
 8. **Email uniqueness:** UNIQUE constraint on `users.email` (case-insensitive via DB collation or app-level normalization).
 9. **Refresh token rotation (mandatory):** On each `/auth/refresh` call, issue new refresh token + invalidate old one. Reduces security exposure if a token leaks.
 10. **Rate limiting signup:** Max 10 registrations per IP per hour (env-configurable). Prevents spam/DDoS signup attempts.
+11. **OpenAPI as contract:** `/openapi.json` is enabled so frontend developers can wire `onSubmit()` against the generated schema instead of screenshots or ad hoc notes.
 
 ## Architectural risks
 
@@ -274,8 +283,9 @@ Build incrementally with clear exit criteria for each phase. Each phase is compl
 9. **Manual: Rate limiting signup** — Attempt 10+ registrations from same IP in 1 hour → requests blocked with 429. Different IP succeeds.
 10. **Manual: Frontend integration** — Frontend on page load calls GET `/api/auth/me` to restore user context. Login calls `/api/auth/login`, stores access token in memory. Before expiry, calls `/api/auth/refresh` to get new token.
 11. **Manual: Vendor location validation** — Register vendor with invalid lat/lon (>90, >180) → 400 with error message. Valid coordinates → 201.
-12. **Lint & type check:** `make lint` and `ruff check .` pass (no errors, warnings acceptable).
-13. **DB schema present:** Inspect PostgreSQL: `\dt` shows users, vendors, refresh_tokens tables with correct columns & indexes.
+12. **Manual: OpenAPI contract** — Open `/docs` locally and verify register, vendor register, login, refresh, logout, and me schemas are visible and executable.
+13. **Lint & type check:** `make lint` and `ruff check .` pass (no errors, warnings acceptable).
+14. **DB schema present:** Inspect PostgreSQL: `\dt` shows users, vendors, refresh_tokens tables with correct columns & indexes.
 
 ---
 **STATUS: AWAITING APPROVAL.** No implementation file will be created or modified

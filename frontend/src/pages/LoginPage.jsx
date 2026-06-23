@@ -4,6 +4,7 @@ import '../assets/styles/forms.css'
 import './auth.css'
 import { useAuth } from '../hooks/useAuth'
 import { validateLoginForm } from '../utils/validators'
+import { toErrorMessage } from '../utils/helpers'
 import Button from '../components/common/Button'
 
 // Login page (AC-07). On success, redirects to the route the user was sent here from
@@ -16,6 +17,7 @@ function LoginPage() {
 
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
+  const [statusBanner, setStatusBanner] = useState(null)
   const loading = status === 'loading'
 
   function update(e) {
@@ -26,12 +28,25 @@ function LoginPage() {
     e.preventDefault()
     const found = validateLoginForm(form)
     setErrors(found)
+    setStatusBanner(null)
     if (Object.keys(found).length > 0) return
     try {
-      await login(form)
-      navigate(from, { replace: true })
-    } catch {
-      /* error surfaced via auth context `error` */
+      const user = await login(form)
+      setStatusBanner({
+        type: 'success',
+        message: `Status OK: logged in successfully as ${user?.role || 'user'}.`,
+      })
+      window.setTimeout(() => {
+        navigate(from, {
+          replace: true,
+          state: { authStatus: 'Status OK: logged in successfully.' },
+        })
+      }, 900)
+    } catch (err) {
+      setStatusBanner({
+        type: 'error',
+        message: `Status Failed: ${toErrorMessage(err, 'Unable to login.')}`,
+      })
     }
   }
 
@@ -41,7 +56,14 @@ function LoginPage() {
         <h1 className="auth-card__title">Welcome back</h1>
         <p className="auth-card__subtitle">Log in to your Local Marketplace account.</p>
 
-        {error ? <div className="form-banner form-banner--error" role="alert">{error}</div> : null}
+        {error && !statusBanner ? (
+          <div className="form-banner form-banner--error" role="alert">Status Failed: {error}</div>
+        ) : null}
+        {statusBanner ? (
+          <div className={`form-banner form-banner--${statusBanner.type}`} role={statusBanner.type === 'success' ? 'status' : 'alert'}>
+            {statusBanner.message}
+          </div>
+        ) : null}
 
         <form onSubmit={onSubmit} noValidate>
           <div className="form-group">

@@ -90,6 +90,53 @@ Each requirement is testable; each records the decision taken (and why) so the
 | FR-12 | MUST: Two separate signup endpoints | POST `/auth/register` for customers (email, password only). POST `/auth/register-vendor` for vendors (email, password, shop_name, location, shop_description). Avoids role confusion in frontend form. |
 | FR-13 | MUST: Vendor shop details at signup | Shop location (lat/lon) required during vendor registration (not post-onboarding). Simplifies flow; vendor can edit later. |
 | FR-14 | MUST: Refresh token rotation | Issue new refresh token on each `/auth/refresh` call; old token revoked. Reduces exposure window if token compromised. |
+| FR-15 | MUST: Publish OpenAPI contracts for frontend integration | FastAPI OpenAPI must be available at `/openapi.json`; Swagger UI may be exposed at `/docs` in local/dev. The contract is the source of truth for frontend `onSubmit()` payloads and responses. |
+| FR-16 | MUST: Never accept or return decryptable passwords | Frontend sends `password` over HTTPS in deployed environments. Backend hashes it into `password_hash` using bcrypt. API payloads must not call the field `encrypted_password`, because stored passwords are one-way hashes, not reversible encryption. |
+
+## 2.1 API Contract Decisions
+
+Canonical API base path: `/api/auth`.
+
+Customer registration:
+
+- `POST /api/auth/register`
+- Request JSON: `email`, `password`, `password_confirm`
+- Success: `201 Created`; the user is logged in because access and refresh tokens are returned.
+- Failure: `400` for validation/duplicate email, `429` for signup rate limit.
+
+Vendor registration:
+
+- `POST /api/auth/register-vendor`
+- Request JSON: `email`, `password`, `password_confirm`, `shop_name`, `location: {lat, lon}`, optional `shop_description`
+- Success: `201 Created`; the vendor is logged in and should be routed to the vendor dashboard.
+- Failure: `400` for validation/duplicate email/invalid location, `429` for signup rate limit.
+
+Login:
+
+- `POST /api/auth/login`
+- Request JSON: `email`, `password`
+- Success: `200 OK`; the user is logged in because access and refresh tokens are returned.
+- Failure: `401` with a generic credential error, suitable for frontend display as "Credentials mismatch".
+
+Shared successful auth response:
+
+```json
+{
+  "access_token": "string",
+  "refresh_token": "string",
+  "user_id": "string",
+  "user_type": "customer | vendor",
+  "vendor_id": "string | null",
+  "shop_name": "string | null"
+}
+```
+
+Frontend behavior:
+
+- On successful register/login, store tokens in memory only and render authenticated state immediately.
+- If `user_type` is `vendor`, route to the vendor dashboard.
+- If `user_type` is `customer`, route to the marketplace/customer home screen.
+- On `401`, show a credentials mismatch message without revealing whether the email exists.
 
 ## 3. Success Criteria / Acceptance Criteria
 
@@ -108,6 +155,7 @@ Objective, verifiable criteria that mark this feature "done & correct".
 - [ ] Frontend stores access token in memory, calls `/auth/me` on page load to restore user context, calls `/auth/refresh` before expiry
 - [ ] Register endpoint validates shop location (±90 lat, ±180 lon) for vendor signups
 - [ ] Vendor & customer token payloads differ in user_type; vendor endpoints enforce authorization
+- [ ] OpenAPI JSON is available at `/openapi.json` and includes register, vendor register, login, refresh, logout, and me endpoints
 - [ ] All tests pass; no unresolved `[NEEDS CLARIFICATION]` in spec.md
 
 ## 4. DB Schema Entities

@@ -8,7 +8,11 @@ from backend.app.models.user import User, UserRole
 from backend.app.models.vendor import Vendor
 from backend.app.security.password import hash_password, validate_password_strength, verify_password
 from backend.app.services.jwt_service import create_access_token, create_refresh_token, verify_refresh_token
-from backend.app.services.rate_limit import check_login_rate_limit, check_signup_rate_limit, clear_failed_login, record_failed_login, record_signup
+from backend.app.services.rate_limit import (
+    check_login_rate_limit,
+    clear_failed_login,
+    record_failed_login,
+)
 
 
 class AuthError(Exception):
@@ -215,6 +219,10 @@ def login(db: Session, email: str, password: str) -> dict:
     # Clear failed attempts on successful login
     clear_failed_login(email)
 
+    vendor = None
+    if user.role == UserRole.vendor.value:
+        vendor = db.query(Vendor).filter(Vendor.user_id == user.id).first()
+
     # Generate tokens
     access_token = create_access_token(user.id, user.role)
     refresh_token = create_refresh_token(user.id)
@@ -237,6 +245,9 @@ def login(db: Session, email: str, password: str) -> dict:
     return {
         "user_id": str(user.id),
         "user_type": user.role,
+        "email": user.email,
+        "vendor_id": str(vendor.id) if vendor else None,
+        "shop_name": vendor.shop_name if vendor else None,
         "access_token": access_token,
         "refresh_token": refresh_token,
     }
@@ -268,7 +279,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> dict:
     except Exception as e:
         raise AuthUnauthorizedError(f"Invalid refresh token: {str(e)}") from e
 
-    user_id = payload["user_id"]
+    user_id = str(payload["user_id"])
     token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
 
     # Find and validate refresh token in DB
@@ -296,7 +307,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> dict:
     db.commit()
 
     # Issue new tokens
-    new_access_token = create_access_token(user.id, user.role.value)
+    new_access_token = create_access_token(user.id, user.role)
     new_refresh_token = create_refresh_token(user.id)
     new_token_hash = hashlib.sha256(new_refresh_token.encode()).hexdigest()
 
@@ -311,6 +322,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> dict:
     return {
         "user_id": str(user.id),
         "user_type": user.role,
+        "email": user.email,
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
     }
@@ -333,7 +345,7 @@ def logout(db: Session, user_id: uuid.UUID, refresh_token: str) -> bool:
 
     # Find and revoke token
     token_record = db.query(RefreshToken).filter(
-        RefreshToken.user_id == user_id,
+        RefreshToken.user_id == str(user_id),
         RefreshToken.token_hash == token_hash,
     ).first()
 
@@ -364,7 +376,7 @@ def get_current_user(db: Session, access_token: str) -> dict:
     except Exception as e:
         raise AuthUnauthorizedError(f"Invalid token: {str(e)}") from e
 
-    user_id = payload["user_id"]
+    user_id = str(payload["user_id"])
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:

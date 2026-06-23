@@ -39,6 +39,7 @@ def create_access_token(user_id: uuid.UUID, user_type: str, expires_delta: timed
     payload = {
         "sub": str(user_id),
         "user_type": user_type,
+        "jti": str(uuid.uuid4()),
         "iat": now,
         "exp": expire,
     }
@@ -66,6 +67,7 @@ def create_refresh_token(user_id: uuid.UUID, expires_delta: timedelta | None = N
     payload = {
         "sub": str(user_id),
         "type": "refresh",
+        "jti": str(uuid.uuid4()),
         "iat": now,
         "exp": expire,
     }
