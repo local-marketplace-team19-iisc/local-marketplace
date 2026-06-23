@@ -7,6 +7,9 @@ from backend.app.models.user import User
 from backend.app.models.vendor import Vendor
 
 __all__ = [
+    "Category",
+    "Product",
+    "SubCategory",
     "User",
     "Vendor",
     "Otp",

@@ -24,6 +24,8 @@ function Navbar() {
   }
 
   const linkClass = ({ isActive }) => classNames('navbar__link', isActive && 'navbar__link--active')
+  const username = user?.email ? user.email.split('@')[0] : null
+  const userLabel = user?.name || username || user?.vendor
 
   return (
     <header className="navbar">
@@ -64,9 +66,16 @@ function Navbar() {
           )}
 
           {isAuthenticated ? (
-            <button type="button" className="navbar__link navbar__logout" onClick={handleLogout}>
-              Logout{user?.name ? ` (${user.name})` : ''}
-            </button>
+            <>
+              {userLabel ? (
+                <span className="navbar__user" title={userLabel}>
+                  {userLabel}
+                </span>
+              ) : null}
+              <button type="button" className="navbar__link navbar__logout" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
           ) : (
             <NavLink to="/login" className={linkClass} onClick={close}>Login</NavLink>
           )}
