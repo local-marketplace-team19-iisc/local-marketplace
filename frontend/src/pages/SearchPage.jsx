@@ -26,8 +26,11 @@ function SearchPage() {
     setLoading(true)
     setError(null)
     try {
-      const { results: found } = await searchProducts(q)
-      setResults(found || [])
+      // Backend wire shape changed in feature 008: GET /api/search now returns
+      // `{ products: [...] }` (was `{ results: [...] }` in the feature-004
+      // mock). Accept either so old fixtures + the real API both work.
+      const resp = await searchProducts(q)
+      setResults(resp?.products || resp?.results || [])
     } catch (err) {
       setError(toErrorMessage(err))
       setResults([])
@@ -47,14 +50,16 @@ function SearchPage() {
     runSearch(query.trim())
   }
 
-  // Image-based search (AC-09, D8). Mocked vision in dev.
+  // Image-based search (AC-09, D8). Mocked vision in dev — no server-side
+  // implementation yet, so this still consumes the legacy `results` key
+  // from the mock; tolerate the new `products` key for forward compat.
   async function onImageSearch() {
     if (!image) return
     setLoading(true)
     setError(null)
     try {
-      const { results: found } = await searchByImage(image)
-      setResults(found || [])
+      const resp = await searchByImage(image)
+      setResults(resp?.products || resp?.results || [])
     } catch (err) {
       setError(toErrorMessage(err))
       setResults([])

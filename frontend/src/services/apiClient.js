@@ -52,11 +52,25 @@ export async function apiRequest(method, path, { body, params } = {}) {
 
   const data = await res.json().catch(() => null)
   if (!res.ok) {
-    throw new ApiError(
-      (data && (data.message || data.detail)) || `Request failed (${res.status}).`,
-      res.status,
-      data,
-    )
+    // FastAPI returns errors as `{detail: ...}`. Detail can be a plain string
+    // ("Forbidden"), an object (`{message, lines, ...}` for our richer 409s),
+    // or — for validation errors — an array of issue objects. We always want
+    // a human-readable string on the Error so UI banners render correctly; the
+    // raw payload stays available on `err.data` for callers that need it.
+    const detail = data?.detail
+    let message
+    if (typeof detail === 'string') {
+      message = detail
+    } else if (detail && typeof detail === 'object' && typeof detail.message === 'string') {
+      message = detail.message
+    } else if (Array.isArray(detail) && detail[0]?.msg) {
+      message = detail[0].msg
+    } else if (typeof data?.message === 'string') {
+      message = data.message
+    } else {
+      message = `Request failed (${res.status}).`
+    }
+    throw new ApiError(message, res.status, data)
   }
   return data
 }

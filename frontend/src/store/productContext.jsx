@@ -87,7 +87,12 @@ export function ProductProvider({ children }) {
   const fetchProduct = (id) => productService.getProduct(id).then((d) => d.product)
 
   const searchProducts = (query) =>
-    run(() => searchService.searchProducts(query), (d) => dispatch({ type: 'SET_RESULTS', results: d.results || [] }))
+    // Feature 008 — backend now returns `{ products, meta }` (SBERT search).
+    // Tolerate both shapes so this code survives the old mock fixtures too.
+    run(
+      () => searchService.searchProducts(query),
+      (d) => dispatch({ type: 'SET_RESULTS', results: d.products || d.results || [] }),
+    )
 
   const addProduct = (body) =>
     run(() => productService.createProduct(body), (d) => dispatch({ type: 'UPSERT_PRODUCT', product: d.product }))
@@ -102,7 +107,7 @@ export function ProductProvider({ children }) {
     run(() => orderService.listOrders(), (d) => dispatch({ type: 'SET_ORDERS', orders: d.orders || [] }))
 
   const placeOrder = () => {
-    const items = state.cart.map((c) => ({ productId: c.product.id, vendorId: c.product.vendorId, qty: c.qty }))
+    const items = state.cart.map((c) => ({ productId: c.product.id, qty: c.qty }))
     return run(
       () => orderService.placeOrder(items),
       (d) => {

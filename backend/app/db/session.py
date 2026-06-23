@@ -1,5 +1,6 @@
 import os
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,11 +12,41 @@ from backend.app.core.config import settings
 
 _on_vercel = os.environ.get("VERCEL") == "1"
 
-LOCAL_AUTH_DATABASE_URL = "sqlite:///./local_marketplace.db"
+# Resolve the local SQLite file to the marketplace **project root** rather
+# than the process's `cwd`. `sqlite:///./local_marketplace.db` (the legacy
+# URL) silently created a different file every time uvicorn was launched
+# from a deeper directory, which then collided with file-locks held by
+# stale processes — surfacing as `OperationalError: attempt to write a
+# readonly database`. Anchoring to the package root means there is exactly
+# one DB on disk no matter where the server is started from.
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_LOCAL_SQLITE_PATH = _PROJECT_ROOT / "local_marketplace.db"
+LOCAL_AUTH_DATABASE_URL = f"sqlite:///{_LOCAL_SQLITE_PATH}"
+
+
+def _normalize_sqlite_url(url: str) -> str:
+    """Rewrite a cwd-relative `sqlite:///./foo.db` (or bare-relative
+    `sqlite:///foo.db`) URL to an absolute path anchored at the marketplace
+    project root. Postgres URLs, absolute SQLite URLs (`sqlite:////abs`)
+    and special forms (`:memory:`) are returned untouched.
+    """
+    if not url.startswith("sqlite"):
+        return url
+    prefix, sep, path = url.partition(":///")
+    if not sep or not path:
+        return url  # e.g. sqlite:// or sqlite::memory:
+    if path == ":memory:" or path.startswith(":"):
+        return url
+    if path.startswith("/"):
+        return url  # already absolute (sqlite:////abs/path)
+    rel = path[2:] if path.startswith("./") else path
+    return f"{prefix}:///{(_PROJECT_ROOT / rel).resolve()}"
 
 
 def _sync_database_url(url: str) -> str:
-    return url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
+    return _normalize_sqlite_url(
+        url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
+    )
 
 
 def _engine_options(url: str) -> dict:
@@ -47,18 +78,14 @@ def _async_database_url(url: str) -> str | None:
     if url.startswith("postgresql+asyncpg://"):
         return url
     if url.startswith("sqlite+aiosqlite://"):
-        return url
+        return _normalize_sqlite_url(url)
     return None
 
 
-# Sync engine — feature 003 auth. Prefer configured Postgres when reachable;
-# fall back to the local auth DB so the live demo can still register/login.
 engine = _select_auth_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Async engine — feature 001 marketplace entities. Only initialize when the URL
-# uses an async driver; the auth demo path is sync-only.
 _async_url = _async_database_url(settings.DATABASE_URL)
 _async_engine_kwargs: dict = {"echo": False}
 if _on_vercel:

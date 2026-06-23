@@ -23,6 +23,56 @@ A conversational, deterministic marketplace agent. A customer (registered with a
    confirms -> receives one unique order number (which is further having one to many relationship like one order can have many vendors) and "Order placed - with the order summary"
 2. Vendor (dashboard screen): registers with a shop location -> adds / updates / deletes listings (catalog product (vendor define their own product details but   must fit the pre-defined enum category) + price + stock) -> views inventory and incoming orders.
 
+## 3.A High-level design (shipped composition)
+
+The MVP is composed feature-by-feature. The diagram below shows the
+single request path a customer or vendor follows today.
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │  React 19 SPA  (Feature 004)                                │
+    │  Customer chatbot · Vendor dashboard · Search bar           │
+    │  Text + voice→text (Web Speech API)                         │
+    └───────────────────────────┬─────────────────────────────────┘
+                                │  HTTPS  /api/chat
+                                │         /api/agent/route
+                                │         /api/search
+                                ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │  FastAPI backend                                            │
+    │                                                             │
+    │  ┌────────────────────────────────────────────────────┐     │
+    │  │ Agent layer  (Feature 008 — SBERT Intent Router)   │     │
+    │  │   intent classification (SBERT MiniLM-L6-v2)       │     │
+    │  │   + deterministic entity extraction (regex)        │     │
+    │  │   no LLM on the request path                       │     │
+    │  └─────────────────────┬──────────────────────────────┘     │
+    │                        │  (intent, entities, role)          │
+    │                        ▼                                    │
+    │  ┌────────────────────────────────────────────────────┐     │
+    │  │ Domain services                                    │     │
+    │  │   auth      (Feature 003)                          │     │
+    │  │   catalog   (Feature 005)                          │     │
+    │  │   products  (Feature 006)                          │     │
+    │  │   orders    (Feature 007 — place / list)           │     │
+    │  └─────────────────────┬──────────────────────────────┘     │
+    │                        ▼                                    │
+    │            SQLAlchemy ORM  (Feature 001 schema)             │
+    └────────────────────────┬────────────────────────────────────┘
+                             ▼
+              PostgreSQL + PostGIS + pgvector  (target)
+              SQLite locally for V1 dev loop
+
+Design constraints carried forward from §2:
+- **Conversational but deterministic.** SBERT only chooses *which* API
+  to call; pricing, ranking (cheapest-first; distance as tie-break),
+  inventory mutation, and order placement remain rule-based.
+- **No LLM on the request path** for V1. The Feature 002 planner /
+  orchestrator code is kept on disk but is unreached by any HTTP
+  route — restoring it is a one-line revert in `backend/app/main.py`.
+- **Stateless agent.** Each request is one classification + one HTTP
+  call + one response. No session memory, no slot-filling, no
+  multi-turn confirmation in V1.
+
 ## 4. Project layout (target - each feature creates only its slice)
 
     ./                                    # repo root = local-marketplace
@@ -60,6 +110,23 @@ A conversational, deterministic marketplace agent. A customer (registered with a
     └── frontend/                         # React 18 (later); generates client from docs/api/openapi.json
 
 
+## 4.A Feature map (shipped to date) : 
+
+One feature per slice, in the order they were built. Each row links the
+slice to its spec folder; the slice spec is the authoritative contract.
+
+| # | Slug | What it owns | Status |
+| :-- | :-- | :-- | :-- |
+| 000 | `000-app-scaffold` | FastAPI scaffold, `/health`, config, lint, test harness | Shipped |
+| 001 | `001-db-schema` | SQLAlchemy ORM tables, Alembic migrations | Shipped |
+| 002 | `002-agent` | Long-term planner / orchestrator / tool-registry agent (kept on disk; **unreached on the wire** in V1, see Feature 008) | Parked |
+| 003 | `003-vendor-customer-auth` | Register / login (JWT), role gating (customer / vendor) | Shipped |
+| 004 | `004-frontend` | React 19 SPA — customer chatbot, vendor dashboard, search bar; text + voice→text input | Shipped |
+| 005 | `005-catalog` | Category / sub-category taxonomy + seed data | Shipped |
+| 006 | `006-vendor-product-management` | Products REST (`/api/products`, `/api/catalog`) — list, create, update, delete, create-from-description, delete-by-description | Shipped |
+| 007 | *(no slice folder)* | Customer order placement (`/api/orders`): `POST` places a multi-vendor order from the cart with all-or-nothing stock decrement and product/vendor snapshots; `GET` returns the customer's own orders, newest-first. Customers only — vendor-side view and status transitions are deferred. | Shipped |
+| 008 | `008-sbert-intent-router` | Lightweight V1 agent: SBERT intent classification + regex entity extraction → routes to existing 005 / 006 APIs. `/api/chat`, `/api/agent/route`, `/api/search` | Shipped |
+
 ## 5. Target stack & constraints
 
 The full stack the product is built toward. Rows marked `app scaffold` are the one-time runnable starting point delivered by feature 000 — governed like any feature, but not a product feature.
@@ -77,6 +144,8 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 | Customer surface | Web chatbot (text; voice->text later) | (later) (UI) |
 | Auth | Register / email-based login (email + password or email OTP); mobile OTP not used | later |
 | Frontend | React 18 | later |
+| Agent layer | SBERT (`sentence-transformers/all-MiniLM-L6-v2`, CPU) for intent classification; regex/token rules for entity extraction; no LLM on the request path | Feature 008 |
+| Voice input | Browser-side ASR via Web Speech API (chat surfaces only) | Feature 004 + 008 |
 
 ## 6. Non-functional requirements
 

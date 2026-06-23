@@ -1,7 +1,8 @@
 .PHONY: install dev run test lint \
         docker-build docker-up docker-down \
         db-migrate test-db \
-        agent agent-vendor agent-customer agent-test agent-lint
+        agent agent-vendor agent-customer agent-test agent-lint \
+        sbert-install sbert-download sbert-test router-test
 
 # ---------------------------------------------------------------------------
 # Corporate proxy (optional).
@@ -80,3 +81,36 @@ agent-test:
 
 agent-lint:
 	ruff check backend/agent
+
+# ---- Feature 008 (SBERT lightweight intent router) ------------------------
+
+# Install the SBERT extras (~500 MB) into the active venv.
+sbert-install:
+	pip install -e ".[sbert]"
+
+# Download the SBERT model into MODELS_DIR (default ./models/sbert).
+# Run this once per machine; subsequent boots use the snapshot offline.
+# Requires network access to huggingface.co. On corporate networks that
+# intercept TLS, set CURL_CA_BUNDLE / REQUESTS_CA_BUNDLE to your CA chain
+# before running.
+sbert-download:
+	mkdir -p $${MODELS_DIR:-./models/sbert}
+	python -c "from sentence_transformers import SentenceTransformer; \
+m = SentenceTransformer('$${SBERT_MODEL_NAME:-sentence-transformers/all-MiniLM-L6-v2}'); \
+m.save('$${MODELS_DIR:-./models/sbert}'); \
+print('saved to', '$${MODELS_DIR:-./models/sbert}')"
+
+# Fast unit suite for the router (excludes the `slow` intent-accuracy test).
+router-test:
+	pytest backend/tests/test_products_stub.py \
+	       backend/tests/test_entities.py \
+	       backend/tests/test_sbert_loader.py \
+	       backend/tests/test_agent_router.py \
+	       backend/tests/test_agent_route_endpoint.py \
+	       backend/tests/test_chat_router.py \
+	       backend/tests/test_search_route.py -q
+
+# End-to-end SBERT accuracy gate. Requires sbert-download to have been run
+# (or ALLOW_MODEL_DOWNLOAD=1 in the environment).
+sbert-test:
+	pytest backend/tests/test_intent_classifier.py -m slow -v

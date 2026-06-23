@@ -45,6 +45,13 @@ agent = [
     "pillow==11.0.0",
     "pytesseract==0.3.13",
 ]
+# Feature 008 (SBERT intent router). ~500 MB closure (torch + transformers
+# + sentence-transformers). Pinned to the 3.x major; bump explicitly when
+# upgrading SBERT prototypes.
+sbert = [
+    "sentence-transformers>=3.0,<4",
+    "numpy>=1.26",
+]
 
 [tool.setuptools.packages.find]
 include = ["backend*"]

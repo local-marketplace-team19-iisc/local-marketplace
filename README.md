@@ -69,3 +69,43 @@ make agent-test         # pytest backend/agent/tests
 make agent-lint         # ruff check backend/agent
 make test               # full repo (000 + 002)
 ```
+
+## Run (SBERT lightweight router — feature 008)
+
+The V1 natural-language agent for the marketplace (text + voice → SBERT →
+intent + entities → existing APIs). Replaces feature 007's planner-backed
+chat endpoint with a stateless, LLM-free pipeline. Source contract:
+[specs/008-sbert-intent-router/spec.md](specs/008-sbert-intent-router/spec.md).
+
+```bash
+# install SBERT + numpy (~500 MB closure; one-time)
+make sbert-install
+
+# pre-download the model (~80 MB) into ./models/sbert so the app boots
+# offline and CI doesn't hit the network. Requires huggingface.co access.
+make sbert-download
+
+# run the API — three new routes are exposed:
+#   POST /api/chat              — chatbot (frontend-compatible shape)
+#   POST /api/agent/route       — verbose one-shot router (debug/tool callers)
+#   GET  /api/search?q=...      — search-bar (anonymous-friendly)
+make run
+
+# fast unit tests for the router
+make router-test
+
+# end-to-end SBERT accuracy gate (requires model pre-downloaded or
+# ALLOW_MODEL_DOWNLOAD=1 in the environment)
+make sbert-test
+```
+
+Configuration knobs live in `.env.example` under the feature 008 section:
+`MODELS_DIR`, `ALLOW_MODEL_DOWNLOAD`, `SBERT_MODEL_NAME`,
+`INTENT_CONFIDENCE_THRESHOLD`, `CATEGORY_MATCH_THRESHOLD`,
+`AGENT_CHAT_TURN_TIMEOUT_S`.
+
+The products API the router talks to is the real feature
+006-vendor-product-management service
+(`backend/app/services/product_service.py` + `backend/app/api/routes/products.py`
+and `backend/app/api/routes/catalog.py`). The SBERT router dispatches into it
+directly against a SQLAlchemy `Session` — no HTTP self-call.
