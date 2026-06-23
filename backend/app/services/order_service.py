@@ -33,6 +33,7 @@ from sqlalchemy.orm import Session
 from backend.app.models.order import Order
 from backend.app.models.order_item import OrderItem
 from backend.app.models.product import Product
+from backend.app.models.user import User
 from backend.app.models.vendor import Vendor
 
 
@@ -225,6 +226,38 @@ def list_orders_for_customer(db: Session, *, customer_id: str) -> list[Order]:
     )
 
 
+def list_orders_for_vendor(db: Session, *, vendor_id: str) -> list[Order]:
+    """Return orders that contain at least one line belonging to `vendor_id`.
+
+    A customer's checkout can span multiple vendors but produces a single
+    Order row (SPEC §3 — "one unique order number"). For the vendor view we
+    want that same order back, but it isn't the vendor's job to know which
+    other shops the customer also bought from — so the **projection layer**
+    (`project_order_for_vendor`) drops items that aren't this vendor's.
+
+    Query strategy: an EXISTS sub-query on `order_items.vendor_id`. We rely
+    on the existing `ix_order_items_vendor_id` index to keep this cheap even
+    when the orders table grows. We avoid a join+DISTINCT because that would
+    eagerly load every line item; the Order.items relationship is
+    `lazy="joined"`, so SQLAlchemy already fetches the full item set in one
+    follow-up query — fine for V1 cardinalities. If/when this gets noisy on
+    Postgres we'll swap to a single explicit JOIN + GROUP BY + array_agg.
+    """
+    return (
+        db.query(Order)
+        .filter(
+            db.query(OrderItem.id)
+            .filter(
+                OrderItem.order_id == Order.id,
+                OrderItem.vendor_id == vendor_id,
+            )
+            .exists()
+        )
+        .order_by(Order.placed_at.desc())
+        .all()
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Wire projection
 # --------------------------------------------------------------------------- #
@@ -257,3 +290,77 @@ def project_order(order: Order) -> dict[str, Any]:
         "total": float(order.total_inr),
         "placedAt": order.placed_at.isoformat() + "Z",
     }
+
+
+def project_orders_for_vendor(
+    db: Session,
+    orders: list[Order],
+    *,
+    vendor_id: str,
+) -> list[dict[str, Any]]:
+    """Vendor-scoped projection of an Order list.
+
+    For each order we:
+      * keep ONLY items whose `vendor_id` matches the calling vendor;
+      * compute a vendor-scoped subtotal (sum of `lineTotal` for those items);
+      * report `otherVendorsCount` so the vendor knows whether the order has
+        other shops on it, without naming them (privacy decision: a vendor
+        does not learn the competitive set from this view);
+      * surface the customer's id + email only — minimum needed to recognise
+        repeat buyers or follow up. Full name / phone / address are
+        intentionally omitted (privacy + data-protection).
+
+    Customer emails are bulk-resolved in one query, not per-row.
+    """
+    if not orders:
+        return []
+
+    customer_ids = list({o.customer_id for o in orders})
+    email_by_id: dict[str, str] = {
+        u.id: (u.email or "")
+        for u in db.query(User).filter(User.id.in_(customer_ids)).all()
+    }
+
+    out: list[dict[str, Any]] = []
+    for order in orders:
+        # Partition the items: mine vs. the rest. We never expose the rest.
+        my_items: list[dict[str, Any]] = []
+        other_vendor_ids: set[str | None] = set()
+        for it in order.items:
+            if it.vendor_id == vendor_id:
+                my_items.append(
+                    {
+                        "id": it.id,
+                        "productId": it.product_id,
+                        "name": it.product_name_snapshot,
+                        "brand": it.brand_snapshot,
+                        "qty": int(it.qty),
+                        "unitPrice": float(it.unit_price_inr),
+                        "lineTotal": float(it.line_total_inr),
+                    }
+                )
+            else:
+                other_vendor_ids.add(it.vendor_id)
+
+        # Defence in depth: list_orders_for_vendor() should already exclude
+        # orders with no matching items, but a stale relationship-load can't
+        # be ruled out. If we somehow have zero items for this vendor, skip.
+        if not my_items:
+            continue
+
+        vendor_subtotal = round(sum(it["lineTotal"] for it in my_items), 2)
+        out.append(
+            {
+                "orderNumber": order.order_number,
+                "status": order.status,
+                "placedAt": order.placed_at.isoformat() + "Z",
+                "items": my_items,
+                "vendorSubtotal": vendor_subtotal,
+                "otherVendorsCount": len(other_vendor_ids),
+                "customer": {
+                    "id": order.customer_id,
+                    "email": email_by_id.get(order.customer_id, ""),
+                },
+            }
+        )
+    return out

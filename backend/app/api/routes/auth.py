@@ -94,15 +94,21 @@ def register_vendor(
     if request_data.password != request_data.password_confirm:
         raise HTTPException(status_code=400, detail="Passwords do not match")
 
-    # Extract location coordinates
-    try:
-        lat = request_data.location.get("lat")
-        lon = request_data.location.get("lon")
-        if lat is None or lon is None:
-            raise ValueError("Location must have 'lat' and 'lon' keys")
-        location = (float(lat), float(lon))
-    except (ValueError, TypeError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid location format: {e}") from e
+    # Extract location coordinates. The V1 registration UI no longer asks
+    # for lat/lon (we don't ship a location-based feature yet), so we
+    # accept a missing/empty `location` and fall back to `(0, 0)`. If a
+    # client does supply coordinates we still validate the structure.
+    if request_data.location is None:
+        location = (0.0, 0.0)
+    else:
+        try:
+            lat = request_data.location.get("lat")
+            lon = request_data.location.get("lon")
+            if lat is None or lon is None:
+                raise ValueError("Location must have 'lat' and 'lon' keys")
+            location = (float(lat), float(lon))
+        except (ValueError, TypeError) as e:
+            raise HTTPException(status_code=400, detail=f"Invalid location format: {e}") from e
 
     # Check signup rate limit
     client_ip = get_client_ip(request)

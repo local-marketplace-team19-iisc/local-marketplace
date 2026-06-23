@@ -11,9 +11,16 @@ import Button from '../components/common/Button'
 // Registration page (AC-06). Customers and vendors register here; vendors land on the
 // vendor dashboard, customers on home.
 function RegisterPage() {
-  const { register, status, error } = useAuth()
+  // See LoginPage for why we don't read `status` here — the auth context's
+  // rehydrate flag would otherwise leak in and disable the submit button.
+  const { register, error } = useAuth()
   const navigate = useNavigate()
 
+  // V1 vendor registration only collects shop name + (optional) description.
+  // Lat/lon were dropped from the UI because the marketplace doesn't ship
+  // a location-based search yet and asking users to type raw coordinates
+  // was poor UX. The backend treats `location` as optional and stores a
+  // (0, 0) placeholder until we add a real geocoding step.
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -21,13 +28,11 @@ function RegisterPage() {
     password_confirm: '',
     role: ROLES.CUSTOMER,
     shop_name: '',
-    location_lat: '',
-    location_lon: '',
     shop_description: '',
   })
   const [errors, setErrors] = useState({})
   const [statusBanner, setStatusBanner] = useState(null)
-  const loading = status === 'loading'
+  const [submitting, setSubmitting] = useState(false)
 
   function update(e) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
@@ -42,23 +47,25 @@ function RegisterPage() {
     setErrors(found)
     setStatusBanner(null)
     if (Object.keys(found).length > 0) return
+    setSubmitting(true)
     try {
       const user = await register(form)
-      setStatusBanner({
-        type: 'success',
-        message: `Status OK: registration successful. Logged in as ${user?.role || 'user'}.`,
+      // Navigate immediately, no setTimeout. The `PerIdentityProviders`
+      // unmount-on-identity-change pattern means deferred navigations
+      // schedule against a component that's about to be torn down. See
+      // the matching comment in LoginPage.onSubmit for the full story.
+      navigate(user?.role === ROLES.VENDOR ? '/vendor' : '/search', {
+        replace: true,
+        state: {
+          authStatus: `Status OK: registration successful. Logged in as ${user?.role || 'user'}.`,
+        },
       })
-      window.setTimeout(() => {
-        navigate(user?.role === ROLES.VENDOR ? '/vendor' : '/', {
-          replace: true,
-          state: { authStatus: 'Status OK: registration successful. User is logged in.' },
-        })
-      }, 900)
     } catch (err) {
       setStatusBanner({
         type: 'error',
         message: `Status Failed: ${toErrorMessage(err, 'Unable to register.')}`,
       })
+      setSubmitting(false)
     }
   }
 
@@ -190,42 +197,6 @@ function RegisterPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="location_lat">Shop latitude</label>
-                <input
-                  className="form-input"
-                  id="location_lat"
-                  name="location_lat"
-                  type="number"
-                  step="any"
-                  value={form.location_lat}
-                  onChange={update}
-                  aria-invalid={Boolean(errors.location_lat)}
-                  aria-describedby={errors.location_lat ? 'location-lat-error' : undefined}
-                />
-                {errors.location_lat ? (
-                  <span className="form-error" id="location-lat-error">{errors.location_lat}</span>
-                ) : null}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="location_lon">Shop longitude</label>
-                <input
-                  className="form-input"
-                  id="location_lon"
-                  name="location_lon"
-                  type="number"
-                  step="any"
-                  value={form.location_lon}
-                  onChange={update}
-                  aria-invalid={Boolean(errors.location_lon)}
-                  aria-describedby={errors.location_lon ? 'location-lon-error' : undefined}
-                />
-                {errors.location_lon ? (
-                  <span className="form-error" id="location-lon-error">{errors.location_lon}</span>
-                ) : null}
-              </div>
-
-              <div className="form-group">
                 <label className="form-label" htmlFor="shop_description">Shop description</label>
                 <textarea
                   className="form-input"
@@ -239,7 +210,7 @@ function RegisterPage() {
             </>
           ) : null}
 
-          <Button type="submit" variant="primary" className="btn--block" loading={loading}>
+          <Button type="submit" variant="primary" className="btn--block" loading={submitting}>
             Create account
           </Button>
         </form>

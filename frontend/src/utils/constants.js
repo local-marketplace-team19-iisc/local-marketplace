@@ -52,6 +52,7 @@ export const API_ROUTES = {
   extractProduct: '/api/extract/product',
   chat: '/api/chat',
   orders: '/api/orders',
+  vendorOrders: '/api/vendor/orders',
 }
 
 // Route paths used across the app (kept in one place; see FRONTEND_DOCUMENTATION.md §3).

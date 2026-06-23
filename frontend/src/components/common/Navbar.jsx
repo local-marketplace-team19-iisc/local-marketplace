@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import './Navbar.css'
 import logo from '../../assets/images/logo.svg'
 import { useAuth } from '../../hooks/useAuth'
@@ -13,7 +13,11 @@ function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
   const { cartCount } = useProducts()
   const navigate = useNavigate()
-  const { pathname } = useLocation()
+  // Resolve once: `pathname` for the home-page dark-navbar variant from
+  // upstream, and the full `location` for the query-aware vendor-link
+  // active predicates added in this branch (?tab=orders).
+  const location = useLocation()
+  const { pathname } = location
   const [open, setOpen] = useState(false)
   const isHome = pathname === '/'
 
@@ -26,6 +30,16 @@ function Navbar() {
   }
 
   const linkClass = ({ isActive }) => classNames('navbar__link', isActive && 'navbar__link--active')
+
+  // Both vendor links (`Products`, `Orders`) share the `/vendor` pathname and
+  // are disambiguated by the `?tab=` query. NavLink's default active rule
+  // matches on pathname only, so both would light up at the same time. These
+  // bespoke predicates fix that by also looking at the current query.
+  const vendorProductsActive =
+    location.pathname === '/vendor' && new URLSearchParams(location.search).get('tab') !== 'orders'
+  const vendorOrdersActive =
+    location.pathname === '/vendor' && new URLSearchParams(location.search).get('tab') === 'orders'
+  const vendorLinkClass = (active) => classNames('navbar__link', active && 'navbar__link--active')
   const username = user?.email ? user.email.split('@')[0] : null
   const userLabel = user?.name || username || user?.vendor
 
@@ -51,7 +65,10 @@ function Navbar() {
           <NavLink to="/search" className={linkClass} onClick={close}>Search</NavLink>
           <NavLink to="/chat" className={linkClass} onClick={close}>Chatbot</NavLink>
 
-          {isAuthenticated && (
+          {/* Customer-only links — favourites + cart/orders. Vendors get their
+              own dashboard tabs further down, and `/orders` is the customer
+              history page (it 403s for vendors at the API layer). */}
+          {isAuthenticated && user?.role === ROLES.CUSTOMER && (
             <>
               <NavLink to="/favorites" className={linkClass} onClick={close}>Favorites</NavLink>
               <NavLink to="/orders" className={linkClass} onClick={close}>
@@ -60,10 +77,18 @@ function Navbar() {
             </>
           )}
 
+          {/* Vendor-only links. The Orders link deep-links into VendorPage's
+              "Orders" tab via `?tab=orders` (read in VendorPage) so the
+              navbar entry and the in-page tab toggle stay in sync. */}
           {isAuthenticated && user?.role === ROLES.VENDOR && (
             <>
               <NavLink to="/dashboard" className={linkClass} onClick={close}>Dashboard</NavLink>
-              <NavLink to="/vendor" className={linkClass} onClick={close}>Products</NavLink>
+              <NavLink to="/vendor" className={vendorLinkClass(vendorProductsActive)} onClick={close} end>
+                Products
+              </NavLink>
+              <NavLink to="/vendor?tab=orders" className={vendorLinkClass(vendorOrdersActive)} onClick={close}>
+                Orders
+              </NavLink>
             </>
           )}
 
