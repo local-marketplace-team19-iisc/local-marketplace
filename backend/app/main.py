@@ -2,9 +2,9 @@ import os
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -153,11 +153,13 @@ if os.path.exists(_spa_dir):
 
 
 @app.exception_handler(StarletteHTTPException)
-async def spa_fallback(request: Request, exc: StarletteHTTPException) -> FileResponse:
+async def spa_fallback(request: Request, exc: StarletteHTTPException) -> Response:
     # For non-API 404s, serve the SPA so React Router handles the path.
     if exc.status_code == 404 and not request.url.path.startswith("/api/") and os.path.exists(_spa_index):
         return FileResponse(_spa_index)
-    raise exc
+    # Otherwise preserve the original HTTP error. Re-raising here escapes the
+    # handler and surfaces as a 500, so return the response explicitly instead.
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 def main() -> None:
