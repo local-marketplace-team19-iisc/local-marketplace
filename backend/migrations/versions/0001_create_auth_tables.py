@@ -21,12 +21,14 @@ user_role = sa.Enum("customer", "vendor", name="user_role")
 
 def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS postgis")
-    user_role.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "users",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
         sa.Column("phone", sa.String(length=15), nullable=False),
+        # create_table emits CREATE TYPE user_role exactly once here. (The
+        # previous explicit user_role.create() call was redundant and caused a
+        # duplicate CREATE TYPE on Postgres — latent because dev ran on SQLite.)
         sa.Column("role", user_role, nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),

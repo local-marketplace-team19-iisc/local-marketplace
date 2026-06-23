@@ -37,3 +37,6 @@ npm-debug.log*
 models/
 # Local trace / log directory
 traces/
+
+# Local SQLite dev databases (runtime data, not code)
+*.db

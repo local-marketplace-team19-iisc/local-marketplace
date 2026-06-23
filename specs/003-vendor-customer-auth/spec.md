@@ -2,7 +2,7 @@
 title: Feature 003: Vendor Customer Auth
 feature: 003-vendor-customer-auth
 status: draft
-created: 2026-06-20
+created: 2026-06-21
 ---
 
 # Feature 003: Vendor Customer Auth — Specification
@@ -15,44 +15,58 @@ created: 2026-06-20
 
 Primary scenarios (Given / When / Then), each with the edge cases it must handle.
 
-1. **Scenario: Customer Registration & OTP Login**
-   - *Given* a new customer with a phone number
-   - *When* customer enters phone → system sends OTP via SMS → customer enters OTP code
-   - *Then* customer is authenticated, receives access_token + refresh_token, can place orders
-   - **Edge cases:** 
-     - Empty/invalid phone number format
-     - OTP expired (>10 minutes) before verification
-     - Wrong OTP code entered 3 times → block for 5 minutes
-     - Duplicate phone already registered
-     - Concurrent OTP requests for same phone
-
-2. **Scenario: Vendor Registration & Onboarding**
-   - *Given* a new vendor with phone and shop details
-   - *When* vendor enters phone → receives OTP → verifies OTP → enters shop name, location (lat/lng), category
-   - *Then* vendor account created with role=`vendor`, shop location stored as PostGIS Point, receives auth tokens
+1. **Scenario: Customer Registration & Login**
+   - *Given* a new user on the marketplace homepage
+   - *When* they click "Register" and enter email, password (confirmation), and agree to ToS
+   - *Then* account is created, JWT token issued, user redirected to marketplace
    - **Edge cases:**
-     - Missing shop location coordinates
-     - Invalid lat/lng (outside [-90,90] / [-180,180])
-     - Duplicate shop name or location
-     - Shop name with SQL injection / XSS attempts → sanitize
-     - Multiple vendors requesting same location simultaneously
+     - Email already registered → validation error
+     - Weak password → validation error (min 8 chars, complexity rules)
+     - Password mismatch → validation error
+     - Duplicate signup request (race condition) → idempotent, return existing user's token
 
-3. **Scenario: Token Refresh & Session Extension**
-   - *Given* customer/vendor with valid refresh_token but expired access_token
-   - *When* client calls `/auth/refresh` with refresh_token
-   - *Then* new access_token issued, refresh_token rotated (old one revoked)
+2. **Scenario: Customer Login**
+   - *Given* a registered customer with valid credentials
+   - *When* they enter email and password
+   - *Then* JWT access token issued, stored in memory (never localStorage per C-09)
    - **Edge cases:**
-     - Refresh token expired or revoked
-     - Refresh token reuse attack (token already used)
-     - User logged out on another device → refresh should fail
+     - Wrong email or password → "Invalid credentials" (generic, no user enumeration)
+     - Account locked after N failed attempts → reject with "Account temporarily locked"
+     - Email not verified (future: if verification added) → reject with clear message
 
-4. **Scenario: Logout & Token Revocation**
-   - *Given* authenticated user with active session
-   - *When* user calls `/auth/logout`
-   - *Then* refresh_token marked revoked in DB, user must re-authenticate
+3. **Scenario: Vendor Registration & Onboarding**
+   - *Given* a new vendor (shop owner) on signup page
+   - *When* they register (email, password) + enter shop details (name, location/coordinates, description)
+   - *Then* vendor account created, shop record linked, JWT issued, redirected to vendor dashboard
    - **Edge cases:**
-     - Logout called multiple times
-     - Token already expired
+     - Missing shop location → validation error
+     - Duplicate shop name in same area → warning (allow, but should be unique per business logic—TBD)
+     - Invalid coordinates → validation error
+
+4. **Scenario: Token Refresh**
+   - *Given* a client with an expired access token but valid refresh token
+   - *When* they call POST `/auth/refresh` with the refresh token
+   - *Then* new access token issued, refresh token may be rotated
+   - **Edge cases:**
+     - Refresh token expired → reject, user must login again
+     - Refresh token revoked (logout call) → reject
+     - No refresh token provided → reject
+
+5. **Scenario: Get Current User Info**
+   - *Given* an authenticated user with valid JWT
+   - *When* frontend calls GET `/api/auth/me`
+   - *Then* return user details (id, email, user_type, vendor_id if vendor, shop_name if vendor)
+   - **Edge cases:**
+     - No/invalid JWT → 401 Unauthorized
+     - User deleted after token issued → 404 or return minimal info
+
+6. **Scenario: Logout**
+   - *Given* an authenticated user with active tokens
+   - *When* they click "Logout"
+   - *Then* refresh token revoked server-side, frontend clears in-memory JWT
+   - **Edge cases:**
+     - Already logged out → idempotent, return success
+     - Stale token → accept logout (best effort)
 
 ## 2. Functional Requirements & Decisions
 
@@ -61,41 +75,40 @@ Each requirement is testable; each records the decision taken (and why) so the
 
 | ID | Requirement (MUST/SHOULD) | Decision taken & rationale |
 | :-- | :-- | :-- |
-| FR-1 | MUST: OTP-based authentication for both customer & vendor | OTP eliminates password management burden; aligns with phone-first UX in developing markets |
-| FR-2 | MUST: OTP validity = 10 minutes | Balance: 10 min is long enough for user to receive SMS + enter, short enough for security (limits brute force window) |
-| FR-3 | MUST: OTP max failed attempts = 3; then 5-min lockout | Prevents OTP brute force; 5-min lockout is strict but recoverable |
-| FR-4 | MUST: JWT access token expiry = 1 hour | Short-lived reduces breach window; refresh token handles longer sessions |
-| FR-5 | MUST: JWT refresh token expiry = 30 days | Standard web app convention; enables 30-day "remember me" sessions |
-| FR-6 | MUST: Refresh token stored as bcrypt hash in DB | Prevents DB breach from leaking active tokens; aligns with OWASP |
-| FR-7 | MUST: Refresh token rotation on use | Invalidates old token after refresh, mitigates token-reuse attacks |
-| FR-8 | MUST: Users table has `role` enum (customer \| vendor) | Single table, simpler auth logic; roles determine API access |
-| FR-9 | MUST: Vendor location stored as PostGIS Point | Enables distance-based queries for proximity search (Akash's feature); required for §6 non-functional "proximity ≤5km" |
-| FR-10 | MUST: All text inputs (phone, shop_name, etc.) sanitized | Prevents SQL injection & XSS; Constitution P2 (security surface) |
-| FR-11 | SHOULD: OTP sent via SMS (integration stub for now) | Real SMS integration deferred; test uses mock SMS provider |
-| FR-12 | MUST: Phone number stored in normalized format (E.164) | e.g. "+91-9876543210"; enables deduplication and international portability |
-| FR-13 | MUST: API rate-limiting on `/auth/send-otp` | Max 5 OTP requests per phone per hour, prevent SMS spam/abuse |
-| FR-14 | MUST: Vendor onboarding requires shop_location (lat, lng) | Non-negotiable for proximity queries; register/verify flow must not skip it |
+| FR-1 | MUST: Email/password registration (customer & vendor) | No OTP/SMS. Email validation via regex; password validation (min 8 chars, regex for complexity). Aligns with frontend already built. |
+| FR-2 | MUST: Email/password login | Return JWT access + refresh tokens on success. Access token in memory only (C-09). |
+| FR-3 | MUST: JWT token generation & validation | Use HS256 (symmetric key in env). Access token TTL: 1h (configurable). Refresh token TTL: 7d (configurable). Payload: user_id, user_type (customer\|vendor), email. |
+| FR-4 | MUST: Token refresh endpoint | POST `/auth/refresh` accepts refresh token, returns new access token + optionally rotated refresh token. |
+| FR-5 | MUST: Logout endpoint | POST `/auth/logout` revokes refresh token (marks as used/deleted). Idempotent. |
+| FR-6 | MUST: Vendor registration includes shop location | Register endpoint accepts shop_name, location (lat/lon or PostGIS geometry), shop_description. Creates both user & vendor record. |
+| FR-7 | SHOULD: Password strength validation | Min 8 chars, at least 1 uppercase, 1 digit, 1 special char. Clear error messages. |
+| FR-8 | MUST: Account enumeration prevention | Login/register endpoints return generic "Invalid credentials" or "Email already registered" (no leak of which emails exist). |
+| FR-9 | SHOULD: Rate limiting on login attempts | Max 5 failed attempts in 15 min → lock for 15 min. Configurable per env. |
+| FR-9b | SHOULD: Rate limiting on register attempts | Max 10 new registrations per IP per hour. Prevents spam signups. |
+| FR-10 | MUST: Distinguish customer vs vendor in JWT | user_type field in token payload. Backend uses this to enforce authorization (vendor-only endpoints). |
+| FR-11 | MUST: GET /api/auth/me endpoint | Return current user's email, user_type, user_id, vendor_id (if vendor), shop_name/location (if vendor). Requires valid JWT. |
+| FR-12 | MUST: Two separate signup endpoints | POST `/auth/register` for customers (email, password only). POST `/auth/register-vendor` for vendors (email, password, shop_name, location, shop_description). Avoids role confusion in frontend form. |
+| FR-13 | MUST: Vendor shop details at signup | Shop location (lat/lon) required during vendor registration (not post-onboarding). Simplifies flow; vendor can edit later. |
+| FR-14 | MUST: Refresh token rotation | Issue new refresh token on each `/auth/refresh` call; old token revoked. Reduces exposure window if token compromised. |
 
 ## 3. Success Criteria / Acceptance Criteria
 
 Objective, verifiable criteria that mark this feature "done & correct".
 
-- [ ] Customer can register via OTP: `POST /auth/register-customer` accepts phone → `POST /auth/send-otp` sends OTP → `POST /auth/verify-otp` verifies → returns `{access_token, refresh_token}`
-- [ ] Vendor can register & onboard: `POST /auth/register-vendor` accepts phone, shop_name, shop_location (lat, lng) → sends OTP → verify → returns tokens + vendor_id
-- [ ] User can refresh expired access_token: `POST /auth/refresh` with valid refresh_token → returns new access_token + rotated refresh_token
-- [ ] User can logout: `POST /auth/logout` revokes refresh_token; subsequent refresh attempts fail with 401 Unauthorized
-- [ ] All endpoints return proper error codes: 400 (bad input), 401 (unauthorized), 409 (conflict: duplicate phone/shop), 429 (rate limit exceeded), 500 (internal error)
-- [ ] All text inputs (phone, shop_name, etc.) are sanitized (no SQL injection, no XSS); passed to DB safely
-- [ ] OTP code is 6 digits, expires in 10 minutes, can be verified once
-- [ ] Access token (JWT): includes user_id, role, issued_at; expires in 1 hour; verified by signature on each protected endpoint
-- [ ] Refresh token (JWT): includes user_id, jti (unique ID); expires in 30 days; stored as bcrypt hash in `refresh_tokens` table
-- [ ] Vendor location (lat, lng) is validated (lat ∈ [-90,90], lng ∈ [-180,180]); stored as PostGIS Point; indexed for proximity queries
-- [ ] Database schema: `users`, `vendors`, `otps`, `refresh_tokens` tables created with correct columns, types, PKs, FKs, indexes
-- [ ] Rate limiting: max 5 OTP requests per phone per hour (returns 429 if exceeded)
-- [ ] Concurrency safe: simultaneous register requests for same phone → only one succeeds (unique constraint on phone)
-- [ ] All changes committed: spec.md, plan.md, prompts.md, conversation-history.md in `specs/003-vendor-customer-auth/`
-- [ ] Tests pass: `pytest backend/tests/test_auth.py` (register, OTP flow, refresh, logout, error cases all covered)
-- [ ] Linting clean: `ruff check .` passes
+- [ ] POST `/auth/register` creates a customer with email, password (hashed), returns JWT (access + refresh) + user_id + user_type='customer'
+- [ ] POST `/auth/register-vendor` creates vendor + user, requires shop_name, shop_location (lat/lon), returns JWT + vendor_id + user_type='vendor'
+- [ ] POST `/auth/login` accepts email + password, validates, returns JWT (access + refresh) + user_type or generic error
+- [ ] GET `/api/auth/me` returns user email, user_type, user_id, vendor_id/shop_name/location if vendor; requires valid JWT; 401 if missing/invalid
+- [ ] POST `/auth/refresh` accepts valid refresh token, issues new access token + NEW refresh token (rotated), invalidates old refresh token
+- [ ] POST `/auth/logout` revokes refresh token; subsequent refresh calls with that token reject (401)
+- [ ] JWT access token expires after 1h (configurable); refresh token after 7d
+- [ ] Password hashing uses bcrypt (not plaintext or weak hash)
+- [ ] All endpoints return appropriate HTTP status (201 created, 200 ok, 400 bad request, 401 unauthorized, 429 rate limit)
+- [ ] Rate limiting: max 5 failed logins in 15 min; max 10 registrations per IP per hour
+- [ ] Frontend stores access token in memory, calls `/auth/me` on page load to restore user context, calls `/auth/refresh` before expiry
+- [ ] Register endpoint validates shop location (±90 lat, ±180 lon) for vendor signups
+- [ ] Vendor & customer token payloads differ in user_type; vendor endpoints enforce authorization
+- [ ] All tests pass; no unresolved `[NEEDS CLARIFICATION]` in spec.md
 
 ## 4. DB Schema Entities
 
@@ -104,10 +117,9 @@ relationships, indexes/extensions). Migrations live in `backend/migrations/`.
 
 | Entity | Key fields (type) | Relationships | Notes (indexes / constraints) |
 | :-- | :-- | :-- | :-- |
-| `users` | `id` (UUID, PK), `phone` (VARCHAR(15), unique, not null), `role` (ENUM: customer\|vendor, not null), `created_at` (TIMESTAMP), `updated_at` (TIMESTAMP) | 1→many `vendors`, 1→many `otps`, 1→many `refresh_tokens` | INDEX on `phone` for OTP lookup; UNIQUE constraint on `phone` (no duplicate registrations) |
-| `vendors` | `id` (UUID, PK), `user_id` (UUID, FK→users.id, not null), `shop_name` (VARCHAR(255), not null), `shop_location` (Point, PostGIS, not null), `created_at` (TIMESTAMP), `updated_at` (TIMESTAMP) | many→1 `users` | UNIQUE constraint on `shop_name` (or allow duplicates? [NEEDS CLARIFICATION]); SPATIAL INDEX on `shop_location` for proximity queries; FOREIGN KEY on `user_id` (ON DELETE CASCADE) |
-| `otps` | `id` (UUID, PK), `user_id` (UUID, FK→users.id, not null), `code` (VARCHAR(6), not null), `expires_at` (TIMESTAMP, not null), `used` (BOOLEAN, default false), `created_at` (TIMESTAMP) | many→1 `users` | INDEX on `user_id` for OTP lookup; INDEX on `expires_at` for cleanup queries; OTP considered expired if current_time > expires_at |
-| `refresh_tokens` | `id` (UUID, PK), `user_id` (UUID, FK→users.id, not null), `token_hash` (VARCHAR(255), unique, not null), `expires_at` (TIMESTAMP, not null), `revoked` (BOOLEAN, default false), `created_at` (TIMESTAMP) | many→1 `users` | INDEX on `user_id` for per-user token lookup; UNIQUE constraint on `token_hash` (prevent accidental reuse); INDEX on `expires_at` for cleanup; revoked flag allows explicit logout before expiry |
+| users | id (UUID, PK), email (VARCHAR 255), password_hash (VARCHAR 255), user_type (ENUM: 'customer' \| 'vendor'), created_at (TIMESTAMP), updated_at (TIMESTAMP) | 1→1 vendors (if user_type='vendor') | UNIQUE(email); idx on user_type; idx on created_at for audit |
+| vendors | id (UUID, PK), user_id (UUID, FK→users), shop_name (VARCHAR 255), location (PostGIS POINT), shop_description (TEXT), is_active (BOOL, default true), created_at (TIMESTAMP), updated_at (TIMESTAMP) | 1→1 users; 1→N vendors_catalog (future) | UNIQUE(user_id); idx on location for geo queries; idx on is_active |
+| refresh_tokens | id (UUID, PK), user_id (UUID, FK→users), token_hash (VARCHAR 255), expires_at (TIMESTAMP), revoked_at (TIMESTAMP, nullable), created_at (TIMESTAMP) | N→1 users | UNIQUE(token_hash); idx on user_id, expires_at for cleanup; idx on revoked_at for audit |
 
 ## 5. Requirement Completeness / Definition of Done
 

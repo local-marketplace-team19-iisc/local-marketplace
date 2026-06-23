@@ -47,11 +47,16 @@ A conversational, deterministic marketplace agent. A customer (registered with a
     │   │   ├── core/config.py            # settings                      <- app scaffold
     │   │   ├── api/routes/               # health.py (app scaffold); catalog/vendors/search/orders (later)
     │   │   ├── schemas/                  # Pydantic request/response models -> API (wire) contract (later)
-    │   │   ├── models/                   # SQLAlchemy ORM = the DB tables (source of truth)       (later)
-    │   │   └── db/session.py             # engine / session                                       (later)
-    │   ├── migrations/                   # versioned schema history - Alembic (or Liquibase)      (later)
+    │   │   ├── models/                   # SQLAlchemy ORM = the DB tables (source of truth)
+    │   │   │   ├── base.py               # DeclarativeBase metadata class                          (later)
+    │   │   │   ├── models.py             # 9 production table entity classes                       (later)
+    │   │   │   └── __init__.py           # package exports (e.g. from app.models import User)      (later)
+    │   │   └── db/session.py             # async engine / AsyncSession via asyncpg                 (later)
+    │   ├── db/
+    │   │   ├── Dockerfile                # custom DB image: postgis/postgis:16-3.4 + pgvector      (later)
+    │   │   ├── migrations/               # versioned schema history - Alembic                      (later)
+    │   │   └── init/01-extensions.sql    # ONE-TIME Docker bootstrap (CREATE EXTENSION postgis, vector) (later)
     │   └── tests/test_health.py          #                               <- app scaffold
-    ├── db/init/01-extensions.sql         # ONE-TIME DB bootstrap (CREATE EXTENSION postgis, vector) (later)
     └── frontend/                         # React 18 (later); generates client from docs/api/openapi.json
 
 
@@ -70,7 +75,7 @@ The full stack the product is built toward. Rows marked `app scaffold` are the o
 | Vendor surface | Web dashboard | (later) |
 | Search & semantic | Semantic retrieval; pinned model + index | (later) |
 | Customer surface | Web chatbot (text; voice->text later) | (later) (UI) |
-| Auth | Register / OTP login | later |
+| Auth | Register / email-based login (email + password or email OTP); mobile OTP not used | later |
 | Frontend | React 18 | later |
 
 ## 6. Non-functional requirements
