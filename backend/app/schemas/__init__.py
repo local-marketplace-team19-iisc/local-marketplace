@@ -6,6 +6,16 @@ from backend.app.schemas.auth import (
     RegisterVendorRequest,
     UserMeResponse,
 )
+from backend.app.schemas.product import (
+    CategoryRead,
+    ProductCreate,
+    ProductDescriptionRequest,
+    ProductListResponse,
+    ProductRead,
+    ProductResponse,
+    ProductUpdate,
+    SubCategoryRead,
+)
 
 __all__ = [
     "RegisterRequest",
@@ -14,4 +24,12 @@ __all__ = [
     "RefreshRequest",
     "AuthResponse",
     "UserMeResponse",
+    "ProductCreate",
+    "ProductUpdate",
+    "ProductRead",
+    "ProductResponse",
+    "ProductListResponse",
+    "ProductDescriptionRequest",
+    "CategoryRead",
+    "SubCategoryRead",
 ]

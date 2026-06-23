@@ -1,14 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api.routes import auth, health
+from backend.app.api.routes import auth, catalog, health, products
 from backend.app.core.config import settings
 
 app = FastAPI(
     title="Local Marketplace",
-    docs_url=None,
+    docs_url="/docs",
     redoc_url=None,
-    openapi_url=None,
+    openapi_url="/openapi.json",
 )
 
 app.add_middleware(
@@ -21,6 +21,8 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(products.router, prefix="/api/products", tags=["products"])
+app.include_router(catalog.router, prefix="/api/catalog", tags=["catalog"])
 
 
 def main() -> None:

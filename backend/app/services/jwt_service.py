@@ -95,7 +95,10 @@ def verify_token(token: str) -> dict:
         if user_id is None or user_type is None:
             raise JWTInvalidError("Token missing required claims")
 
-        return {"user_id": uuid.UUID(user_id), "user_type": user_type, **payload}
+        # Keep user_id as a string: user ids are stored as String(36) (see
+        # models/user.py), so the DB lookups compare string-to-string. Returning a
+        # uuid.UUID here breaks those lookups (no match on SQLite; type error on PG).
+        return {"user_id": user_id, "user_type": user_type, **payload}
 
     except JoseJWTError as e:
         if "expired" in str(e).lower():
@@ -124,7 +127,8 @@ def verify_refresh_token(token: str) -> dict:
         if user_id is None or token_type != "refresh":
             raise JWTInvalidError("Not a valid refresh token")
 
-        return {"user_id": uuid.UUID(user_id), **payload}
+        # See verify_token: keep user_id as a string to match String(36) user ids.
+        return {"user_id": user_id, **payload}
 
     except JoseJWTError as e:
         if "expired" in str(e).lower():

@@ -81,3 +81,42 @@ def sample_user_id():
 def sample_timestamp():
     """Sample UTC timestamp."""
     return datetime.utcnow()
+
+
+# --------------------------------------------------------------------------- #
+# Feature 006 — vendor product management
+# --------------------------------------------------------------------------- #
+@pytest.fixture
+def catalog_db():
+    """In-memory SQLite session seeded with the catalog taxonomy + two vendors.
+
+    Runtime is PostgreSQL, but the 006 ORM uses only portable column types
+    (String/Numeric/DateTime/Enum), so the product service can be exercised on
+    SQLite for fast, isolated tests.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from backend.app import models  # noqa: F401  registers all tables
+    from backend.app.catalog import seed_data
+    from backend.app.db.session import Base
+    from backend.app.models.category import Category
+    from backend.app.models.subcategory import SubCategory
+    from backend.app.models.vendor import Vendor
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    db = sessionmaker(bind=engine)()
+
+    for row in seed_data.iter_categories():
+        db.add(Category(**row))
+    for row in seed_data.iter_subcategories():
+        db.add(SubCategory(**row))
+    for vid, uid_, name in (("vend-1", "user-1", "Shop One"), ("vend-2", "user-2", "Shop Two")):
+        db.add(
+            Vendor(id=vid, user_id=uid_, shop_name=name, shop_location_lat=0.0, shop_location_lon=0.0)
+        )
+    db.commit()
+
+    yield db
+    db.close()

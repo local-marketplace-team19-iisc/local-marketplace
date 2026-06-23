@@ -49,7 +49,7 @@ class TestAccessTokenVerification:
 
         payload = verify_token(token)
 
-        assert payload["user_id"] == user_id
+        assert payload["user_id"] == str(user_id)  # ids are String(36); verify_token returns str
         assert payload["user_type"] == user_type
         assert "iat" in payload
         assert "exp" in payload
@@ -119,7 +119,7 @@ class TestRefreshTokenVerification:
 
         payload = verify_refresh_token(token)
 
-        assert payload["user_id"] == user_id
+        assert payload["user_id"] == str(user_id)  # ids are String(36); verify_token returns str
         assert payload["type"] == "refresh"
         assert "iat" in payload
         assert "exp" in payload
@@ -163,7 +163,7 @@ class TestTokenRoundTrip:
         token = create_access_token(user_id, user_type)
         payload = verify_token(token)
 
-        assert payload["user_id"] == user_id
+        assert payload["user_id"] == str(user_id)  # ids are String(36); verify_token returns str
         assert payload["user_type"] == user_type
 
     def test_refresh_token_roundtrip(self):
@@ -172,5 +172,5 @@ class TestTokenRoundTrip:
         token = create_refresh_token(user_id)
         payload = verify_refresh_token(token)
 
-        assert payload["user_id"] == user_id
+        assert payload["user_id"] == str(user_id)  # ids are String(36); verify_token returns str
         assert payload["type"] == "refresh"

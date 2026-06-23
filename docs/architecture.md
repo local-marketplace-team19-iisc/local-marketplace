@@ -167,3 +167,55 @@ Integration tests cover all endpoints:
 - Token rotation: old token rejected after refresh
 - Auth errors: 401 on invalid/expired/missing tokens
 - Edge cases: idempotent logout, refresh with wrong token, /me with refresh token (rejected)
+
+---
+
+## Feature 006 — Vendor Product Management (2026-06-23)
+
+Persists the Feature 005 catalog and adds the vendor create/delete-by-description
+workflow. `backend/app/catalog/` (+ new models/services/routes) and the
+`frontend/` vendor slice. Decisions:
+
+- **D1 — Runtime database is PostgreSQL.** New tables (`categories`,
+  `subcategories`, `products`) are created by Alembic `0004` (down_revision
+  `0003`), consistent with the existing Postgres-only chain (postgis/geoalchemy2).
+  No `create_all` runs in app startup. (User decision, 2026-06-23.)
+- **D2 — ID convention preserved, not "fixed".** ORM models declare `String(36)`
+  ids while migrations emit PostgreSQL `UUID` — exactly as the existing
+  `users`/`vendors` models/migrations. 006 follows this rather than touching
+  003-owned files.
+- **D3 — `products` adds the four operational fields 005 deferred** (005 FR-14/15):
+  `vendor_id` (FK→vendors), `stock_quantity`, `created_at`, `updated_at`. 005 §4
+  remains the schema authority for the catalog fields.
+- **D4 — Unknown category → seeded `General → General` subcategory**, keeping 005
+  `subcategory_id` NOT NULL (005 FR-6). Taxonomy is seeded from the 005 examples
+  + frontend `PRODUCT_CATEGORIES`, single-sourced in `catalog/seed_data.py`.
+- **D5 — Deterministic (non-LLM) parser** (`catalog/parser.py`): extracts
+  name/brand/price/unit/stock/category. Defaults brand `"Generic"`, `PIECE`/`1`,
+  stock `0`; a **missing price is rejected** (005 FR-16 — price is mandatory).
+- **D6 — REST normalizes price to 2 dp** rather than rejecting under-precise input
+  (the strict "reject 10.1" rule is a 005 model-layer rule; the vendor API
+  normalizes — same stored result, friendlier UX).
+- **D7 — Writes are vendor-scoped via the 003 JWT** (`Bearer`); reads
+  (`GET /api/products`, `/api/catalog/*`) are public. `delete-by-description`
+  scores only the caller's own rows and deletes the best match (404 if none).
+- **D8 — `GET /api/products` returns display aliases + raw catalog fields** so the
+  existing `VendorPage` renders unchanged (name↔product_name, price↔price_inr,
+  stock↔stock_quantity, category↔(sub)category name, vendorId↔vendor_id).
+- **D9 — Swagger enabled** (`docs_url="/docs"`, `openapi_url="/openapi.json"`) per
+  the feature request / acceptance criteria.
+  - ⚠️ **Conflict with SPEC §7 / `backend/tests/test_health.py::test_no_route_other_than_health`**,
+    which asserts auto-docs are disabled. The explicit feature requirement to
+    enable Swagger supersedes for this feature; reconciling SPEC §7 and the 000
+    scaffold test requires a human decision (Constitution P5 — AI must not edit
+    `SPEC.md`). Recorded here; the 000 test is intentionally left untouched pending
+    that decision.
+- **D10 — Tests run on in-memory SQLite** (portable ORM column types) for speed,
+  even though runtime is Postgres.
+
+**Environment note (not a 006 defect).** A fresh dependency install resolves
+`bcrypt` to 5.0.0, which is incompatible with the pinned `passlib==1.7.4`
+(`ValueError: password cannot be longer than 72 bytes`), causing the pre-existing
+auth/password tests (003) to error. 006's own tests are green. Pinning
+`bcrypt<4.1` would restore the auth suite but touches 003/governance config —
+left for a human decision.
