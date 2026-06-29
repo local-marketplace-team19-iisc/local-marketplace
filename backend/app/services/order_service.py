@@ -142,7 +142,7 @@ def place_order(
         .filter(Product.product_id.in_(product_ids))
         .all()
     )
-    by_id = {p.product_id: p for p in rows}
+    by_id = {str(p.product_id): p for p in rows}
 
     missing = [pid for pid in product_ids if pid not in by_id]
     if missing:
@@ -169,11 +169,11 @@ def place_order(
         raise OrderOutOfStockError(out_of_stock)
 
     # Resolve vendor display names from a single bulk lookup.
-    vendor_ids = list({by_id[ln["product_id"]].vendor_id for ln in cleaned})
+    vendor_ids = list({str(by_id[ln["product_id"]].vendor_id) for ln in cleaned})
     vendor_rows = (
         db.query(Vendor).filter(Vendor.id.in_(vendor_ids)).all() if vendor_ids else []
     )
-    vendor_name_by_id = {v.id: v.shop_name for v in vendor_rows}
+    vendor_name_by_id = {str(v.id): v.shop_name for v in vendor_rows}
 
     # Build the Order + OrderItem graph in-memory, then commit once.
     order = Order(
@@ -202,7 +202,7 @@ def place_order(
                 product_name_snapshot=product.product_name,
                 brand_snapshot=product.brand or "Generic",
                 vendor_name_snapshot=vendor_name_by_id.get(
-                    product.vendor_id, "Vendor"
+                    str(product.vendor_id), "Vendor"
                 ),
                 unit_price_inr=unit_price,
                 qty=ln["qty"],
