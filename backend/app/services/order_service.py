@@ -269,9 +269,9 @@ def project_order(order: Order) -> dict[str, Any]:
     """
     items_payload = [
         {
-            "id": it.id,
-            "productId": it.product_id,
-            "vendorId": it.vendor_id,
+            "id": str(it.id),
+            "productId": str(it.product_id),
+            "vendorId": str(it.vendor_id),
             "name": it.product_name_snapshot,
             "brand": it.brand_snapshot,
             "vendor": it.vendor_name_snapshot,
@@ -315,9 +315,9 @@ def project_orders_for_vendor(
     if not orders:
         return []
 
-    customer_ids = list({o.customer_id for o in orders})
+    customer_ids = list({str(o.customer_id) for o in orders})
     email_by_id: dict[str, str] = {
-        u.id: (u.email or "")
+        str(u.id): (u.email or "")
         for u in db.query(User).filter(User.id.in_(customer_ids)).all()
     }
 
@@ -327,11 +327,11 @@ def project_orders_for_vendor(
         my_items: list[dict[str, Any]] = []
         other_vendor_ids: set[str | None] = set()
         for it in order.items:
-            if it.vendor_id == vendor_id:
+            if str(it.vendor_id) == vendor_id:
                 my_items.append(
                     {
-                        "id": it.id,
-                        "productId": it.product_id,
+                        "id": str(it.id),
+                        "productId": str(it.product_id),
                         "name": it.product_name_snapshot,
                         "brand": it.brand_snapshot,
                         "qty": int(it.qty),
@@ -358,8 +358,8 @@ def project_orders_for_vendor(
                 "vendorSubtotal": vendor_subtotal,
                 "otherVendorsCount": len(other_vendor_ids),
                 "customer": {
-                    "id": order.customer_id,
-                    "email": email_by_id.get(order.customer_id, ""),
+                    "id": str(order.customer_id),
+                    "email": email_by_id.get(str(order.customer_id), ""),
                 },
             }
         )
