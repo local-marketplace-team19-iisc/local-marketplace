@@ -69,13 +69,13 @@ def upgrade() -> None:
         sa.Column("code", sa.String(length=6), nullable=False),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("used", sa.Boolean(), nullable=False, server_default=sa.false()),
-        sa.Column("attempts", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("locked_until", sa.DateTime(), nullable=True),
+        # NOTE: attempts + locked_until are added by migration 0002.
+        # Do NOT add them here — duplicate add_column in 0002 would fail on
+        # a fresh database (column already exists).
         sa.Column("created_at", sa.DateTime(), nullable=False),
     )
     op.create_index("ix_otps_user_id", "otps", ["user_id"])
     op.create_index("ix_otps_expires_at", "otps", ["expires_at"])
-    op.create_index("ix_otps_locked_until", "otps", ["locked_until"])
 
     op.create_table(
         "refresh_tokens",
@@ -98,7 +98,6 @@ def downgrade() -> None:
     op.drop_index("ix_refresh_tokens_user_id", table_name="refresh_tokens")
     op.drop_table("refresh_tokens")
 
-    op.drop_index("ix_otps_locked_until", table_name="otps")
     op.drop_index("ix_otps_expires_at", table_name="otps")
     op.drop_index("ix_otps_user_id", table_name="otps")
     op.drop_table("otps")

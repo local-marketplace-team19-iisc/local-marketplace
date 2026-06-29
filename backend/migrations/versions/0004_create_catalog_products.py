@@ -21,13 +21,15 @@ down_revision = "0003_add_email_password_auth"
 branch_labels = None
 depends_on = None
 
-unit_type = sa.Enum(
-    "LITER", "MILLILITER", "KILOGRAM", "GRAM", "PIECE", "PACK", "DOZEN", name="unit_type"
-)
-
-
 def upgrade() -> None:
-    unit_type.create(op.get_bind(), checkfirst=True)
+    # Create enum only if it doesn't already exist (idempotent).
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE unit_type AS ENUM "
+        "('LITER','MILLILITER','KILOGRAM','GRAM','PIECE','PACK','DOZEN'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; "
+        "END $$;"
+    )
 
     op.create_table(
         "categories",
@@ -53,33 +55,26 @@ def upgrade() -> None:
         "ix_subcategories_parent_category_id", "subcategories", ["parent_category_id"]
     )
 
-    op.create_table(
-        "products",
-        sa.Column("product_id", UUID(as_uuid=True), primary_key=True),
-        sa.Column(
-            "subcategory_id",
-            UUID(as_uuid=True),
-            sa.ForeignKey("subcategories.subcategory_id"),
-            nullable=False,
-        ),
-        sa.Column("product_name", sa.String(length=255), nullable=False),
-        sa.Column("brand", sa.String(length=255), nullable=False, server_default="Generic"),
-        sa.Column("description", sa.Text(), nullable=False),
-        sa.Column("unit_type", unit_type, nullable=False),
-        sa.Column("unit_value", sa.Numeric(10, 3), nullable=False),
-        sa.Column("price_inr", sa.Numeric(10, 2), nullable=False),
-        sa.Column(
-            "vendor_id",
-            UUID(as_uuid=True),
-            sa.ForeignKey("vendors.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("stock_quantity", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
-    )
-    op.create_index("ix_products_vendor_id", "products", ["vendor_id"])
-    op.create_index("ix_products_subcategory_id", "products", ["subcategory_id"])
+    # Use raw SQL for products table to avoid SQLAlchemy's Enum _on_table_create
+    # event firing CREATE TYPE for the already-existing unit_type enum.
+    op.execute("""
+        CREATE TABLE products (
+            product_id      UUID PRIMARY KEY,
+            subcategory_id  UUID NOT NULL REFERENCES subcategories(subcategory_id),
+            product_name    VARCHAR(255) NOT NULL,
+            brand           VARCHAR(255) NOT NULL DEFAULT 'Generic',
+            description     TEXT NOT NULL,
+            unit_type       unit_type NOT NULL,
+            unit_value      NUMERIC(10, 3) NOT NULL,
+            price_inr       NUMERIC(10, 2) NOT NULL,
+            vendor_id       UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+            stock_quantity  INTEGER NOT NULL DEFAULT 0,
+            created_at      TIMESTAMP NOT NULL,
+            updated_at      TIMESTAMP NOT NULL
+        )
+    """)
+    op.execute("CREATE INDEX ix_products_vendor_id ON products (vendor_id)")
+    op.execute("CREATE INDEX ix_products_subcategory_id ON products (subcategory_id)")
 
     # Seed the deterministic taxonomy (single source: catalog/seed_data.py).
     categories_tbl = sa.table(
@@ -110,4 +105,4 @@ def downgrade() -> None:
 
     op.drop_table("categories")
 
-    unit_type.drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS unit_type")

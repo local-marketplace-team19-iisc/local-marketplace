@@ -11,7 +11,19 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Use DATABASE_URL_DIRECT (sync psycopg, port 5432) for migrations when available,
+# otherwise fall back to DATABASE_URL normalised to psycopg driver.
+import os as _os
+
+_raw_url = _os.environ.get("DATABASE_URL_DIRECT") or settings.DATABASE_URL_DIRECT or settings.DATABASE_URL
+# Normalise asyncpg → psycopg so Alembic's sync engine can connect
+_sync_url = (
+    _raw_url
+    .replace("postgresql+asyncpg://", "postgresql+psycopg://")
+    .replace("?pgbouncer=true", "")
+)
+# configparser uses % for interpolation; escape any % in the URL (e.g. URL-encoded passwords)
+config.set_main_option("sqlalchemy.url", _sync_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 

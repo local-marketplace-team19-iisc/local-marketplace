@@ -1,8 +1,11 @@
 // App-wide constants. API endpoints are env-configurable (C-05) and the mock toggle
 // implements D3. No business logic lives here — only configuration values.
 
+// Use VITE_API_BASE_URL when set (local dev: http://localhost:8000).
+// In production (Vercel) FastAPI serves from the same origin, so '' resolves
+// relative to window.location — new URL('/api/...', '') works correctly.
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  import.meta.env.VITE_API_BASE_URL ?? ''
 
 export const USE_MOCKS =
   String(import.meta.env.VITE_USE_MOCKS).toLowerCase() === 'true'

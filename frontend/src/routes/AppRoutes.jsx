@@ -23,9 +23,12 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/product/:id" element={<ProductPage />} />
-      <Route path="/chat" element={<ChatbotPage />} />
 
       {/* Authenticated */}
+      {/* /chat is the marketplace agent (customer shopping journey). It must
+          not be reachable while signed out — an anonymous visitor was being
+          shown the agent. Require auth; login redirects back here afterwards. */}
+      <Route path="/chat" element={<ProtectedRoute><ChatbotPage /></ProtectedRoute>} />
       <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
       {/* /orders is the customer cart + history page. Vendors hit the
           "Orders" tab on /vendor instead (different endpoint, different

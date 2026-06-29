@@ -76,10 +76,19 @@ async def _lifespan(_app: FastAPI):
        corporate-firewall default), log a warning and let request-time
        surface the friendly `SBertModelMissingError`.
     """
-    Base.metadata.create_all(
-        bind=engine,
-        tables=[User.__table__, Vendor.__table__, RefreshToken.__table__],
-    )
+    # Wrapped defensively: on serverless (Vercel) the DB may be unreachable at
+    # cold start, in which case the auth engine falls back to a SQLite file in
+    # the read-only project root and this DDL raises. An unhandled raise here
+    # crashes the entire function (FUNCTION_INVOCATION_FAILED), taking down even
+    # DB-less routes like `/health` and the SPA shell. Prod schema is owned by
+    # Alembic, so a failed bootstrap here is non-fatal.
+    try:
+        Base.metadata.create_all(
+            bind=engine,
+            tables=[User.__table__, Vendor.__table__, RefreshToken.__table__],
+        )
+    except Exception as e:  # pragma: no cover — defensive; never crash startup
+        logger.warning("auth tables bootstrap skipped: %s", e)
     try:
         _bootstrap_catalog_tables()
     except Exception as e:  # pragma: no cover — defensive; never crash startup

@@ -8,6 +8,9 @@ class Settings(BaseSettings):
 
     PORT: int = 8000
     DATABASE_URL: str = "sqlite:///./local_marketplace.db"
+    # Direct Postgres connection for Alembic migrations (port 5432, no pooler).
+    # Set to postgresql+psycopg://... Supabase direct URL. Not used at runtime.
+    DATABASE_URL_DIRECT: str = ""
 
     # JWT settings
     JWT_SECRET: str = "your-secret-key-change-in-production"
