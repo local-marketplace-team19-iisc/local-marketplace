@@ -18,6 +18,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Numeric, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from backend.app.db.session import Base
@@ -26,10 +27,10 @@ from backend.app.db.session import Base
 class Order(Base):
     __tablename__ = "orders"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_number = Column(String(32), nullable=False, unique=True)
     customer_id = Column(
-        String(36),
+        UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
     )

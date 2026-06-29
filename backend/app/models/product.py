@@ -12,6 +12,7 @@ from datetime import datetime
 from sqlalchemy import (
     Column,
     DateTime,
+    Enum as PgEnum,
     ForeignKey,
     Index,
     Integer,
@@ -19,6 +20,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from backend.app.db.session import Base
@@ -27,22 +29,24 @@ from backend.app.db.session import Base
 class Product(Base):
     __tablename__ = "products"
 
-    product_id = Column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    product_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     subcategory_id = Column(
-        String(36),
+        UUID(as_uuid=True),
         ForeignKey("subcategories.subcategory_id"),
         nullable=False,
     )
     product_name = Column(String(255), nullable=False)
     brand = Column(String(255), nullable=False, server_default="Generic")
     description = Column(Text, nullable=False)
-    unit_type = Column(String(20), nullable=False)
+    unit_type = Column(
+        PgEnum("LITER", "MILLILITER", "KILOGRAM", "GRAM", "PIECE", "PACK", "DOZEN",
+               name="unit_type", create_type=False),
+        nullable=False,
+    )
     unit_value = Column(Numeric(10, 3), nullable=False)
     price_inr = Column(Numeric(10, 2), nullable=False)
     vendor_id = Column(
-        String(36),
+        UUID(as_uuid=True),
         ForeignKey("vendors.id", ondelete="CASCADE"),
         nullable=False,
     )

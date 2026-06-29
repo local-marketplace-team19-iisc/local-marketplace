@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Numeric, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from backend.app.db.session import Base
@@ -20,19 +21,19 @@ from backend.app.db.session import Base
 class OrderItem(Base):
     __tablename__ = "order_items"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(
-        String(36),
+        UUID(as_uuid=True),
         ForeignKey("orders.id", ondelete="CASCADE"),
         nullable=False,
     )
     product_id = Column(
-        String(36),
+        UUID(as_uuid=True),
         ForeignKey("products.product_id", ondelete="SET NULL"),
         nullable=True,
     )
     vendor_id = Column(
-        String(36),
+        UUID(as_uuid=True),
         ForeignKey("vendors.id", ondelete="SET NULL"),
         nullable=True,
     )

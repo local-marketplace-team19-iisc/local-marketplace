@@ -10,6 +10,7 @@ needing dialect-specific column types.
 import uuid
 
 from sqlalchemy import Column, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from backend.app.db.session import Base
@@ -18,12 +19,10 @@ from backend.app.db.session import Base
 class Category(Base):
     __tablename__ = "categories"
 
-    category_id = Column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    category_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     category_name = Column(String(255), nullable=False, unique=True)
     parent_category_id = Column(
-        String(36),
+        UUID(as_uuid=True),
         ForeignKey("categories.category_id"),
         nullable=True,
     )
