@@ -150,8 +150,7 @@ def register_vendor(
         vendor = Vendor(
             user_id=user.id,
             shop_name=shop_name,
-            shop_location_lat=lat,
-            shop_location_lon=lon,
+            shop_location=f"SRID=4326;POINT({lon} {lat})",
             shop_description=shop_description,
             is_active=True,
         )
@@ -395,9 +394,12 @@ def get_current_user(db: Session, access_token: str) -> dict:
             result["vendor_id"] = str(vendor.id)
             result["shop_name"] = vendor.shop_name
             result["shop_description"] = vendor.shop_description
-            result["shop_location"] = {
-                "lat": vendor.shop_location_lat,
-                "lon": vendor.shop_location_lon,
-            }
+            # Read lat/lon via ST_X/ST_Y — no geoalchemy2 dependency needed
+            from sqlalchemy import text as _text
+            row = db.execute(
+                _text("SELECT ST_Y(shop_location::geometry) AS lat, ST_X(shop_location::geometry) AS lon FROM vendors WHERE id = :vid"),
+                {"vid": vendor.id},
+            ).fetchone()
+            result["shop_location"] = {"lat": row.lat, "lon": row.lon} if row else None
 
     return result
