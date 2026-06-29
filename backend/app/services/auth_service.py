@@ -147,14 +147,24 @@ def register_vendor(
         db.add(user)
         db.flush()  # Get user.id without committing
 
-        vendor = Vendor(
-            user_id=user.id,
-            shop_name=shop_name,
-            shop_location=f"SRID=4326;POINT({lon} {lat})",
-            shop_description=shop_description,
-            is_active=True,
+        from sqlalchemy import text as _text
+        import uuid as _uuid
+        vendor_id = _uuid.uuid4()
+        db.execute(
+            _text(
+                "INSERT INTO vendors (id, user_id, shop_name, shop_location, shop_description, is_active, created_at, updated_at) "
+                "VALUES (:id, :user_id, :shop_name, ST_GeomFromEWKT(:loc), :shop_description, :is_active, NOW(), NOW())"
+            ),
+            {
+                "id": str(vendor_id),
+                "user_id": str(user.id),
+                "shop_name": shop_name,
+                "loc": f"SRID=4326;POINT({lon} {lat})",
+                "shop_description": shop_description,
+                "is_active": True,
+            },
         )
-        db.add(vendor)
+        vendor = db.query(Vendor).filter(Vendor.id == vendor_id).first()
         db.commit()
         db.refresh(user)
         db.refresh(vendor)

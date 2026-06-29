@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from sqlalchemy import Enum as PgEnum
 
 from backend.app.db.session import Base
 
@@ -21,7 +22,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=True, index=True)
     password_hash = Column(String(255), nullable=True)
     phone = Column(String(15), unique=True, nullable=True, index=True)
-    role = Column(String(50), nullable=False)
+    role = Column(PgEnum("customer", "vendor", name="user_role", create_type=False), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
