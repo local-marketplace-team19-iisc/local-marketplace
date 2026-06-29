@@ -10,7 +10,7 @@
         "--project-ref=hstezspiljhcuhjraitb"
       ],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_794c93463fea1f706db0605942d28a1f2c80aaae"
+        "SUPABASE_ACCESS_TOKEN": "${SUPA_MCP_OPENAI_API_KEY}"
       }
     }
   }
